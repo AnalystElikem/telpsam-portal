@@ -18,16 +18,17 @@ function Badge({ count }: { count: number }) {
 
 export default function HeaderBar({
   links,
-  alertCount,
+  badges,
   fullName,
   role,
 }: {
   links: NavLink[];
-  alertCount: number;
+  badges: Record<string, number>;
   fullName: string;
   role: string;
 }) {
   const [open, setOpen] = useState(false);
+  const totalBadges = Object.values(badges).reduce((a, b) => a + b, 0);
 
   return (
     <header className="border-b border-line bg-white">
@@ -57,7 +58,7 @@ export default function HeaderBar({
             className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-line text-ink md:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            {!open && alertCount > 0 && (
+            {!open && totalBadges > 0 && (
               <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-coral" />
             )}
           </button>
@@ -74,7 +75,7 @@ export default function HeaderBar({
               className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-body hover:bg-canvas hover:text-navy"
             >
               {l.label}
-              {l.href === "/admin/alerts" && alertCount > 0 && <Badge count={alertCount} />}
+              {badges[l.href] > 0 && <Badge count={badges[l.href]} />}
             </Link>
           ))}
         </div>
@@ -92,7 +93,7 @@ export default function HeaderBar({
                 className="inline-flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-body hover:bg-canvas hover:text-navy"
               >
                 {l.label}
-                {l.href === "/admin/alerts" && alertCount > 0 && <Badge count={alertCount} />}
+                {badges[l.href] > 0 && <Badge count={badges[l.href]} />}
               </Link>
             ))}
           </div>
