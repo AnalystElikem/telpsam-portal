@@ -43,9 +43,17 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const testMode = process.env.NEXT_PUBLIC_TEST_MODE === "true";
   return (
     <html lang="en" className={`${heading.variable} ${body.variable}`}>
-      <body>{children}</body>
+      <body>
+        {testMode && (
+          <div className="bg-coral px-4 py-1.5 text-center text-xs font-semibold text-white">
+            Test environment — this is a trial. Accounts and data may be reset. Please don&apos;t use real sensitive information.
+          </div>
+        )}
+        {children}
+      </body>
     </html>
   );
 }
