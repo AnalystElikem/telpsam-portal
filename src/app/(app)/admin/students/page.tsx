@@ -30,12 +30,21 @@ export default async function AdminStudents({
   const { error } = await searchParams;
   const supabase = await createClient();
 
-  const { data } = await supabase
+  // Note: student_profiles has two foreign keys to profiles (id and
+  // guardian_consent_by), so an embedded profiles(...) join is ambiguous and
+  // fails. Fetch the names separately and merge by id.
+  const { data: sp } = await supabase
     .from("student_profiles")
-    .select("id, gender, phone, parent_name, parent_contact, church_branch, school, education_level, class_level, is_approved, guardian_consent_confirmed, profiles(full_name, email)")
+    .select("id, gender, phone, parent_name, parent_contact, church_branch, school, education_level, class_level, is_approved, guardian_consent_confirmed")
     .order("created_at", { ascending: false });
+  const base = (sp as unknown as Omit<Row, "profiles">[]) ?? [];
 
-  const rows = (data as unknown as Row[]) ?? [];
+  const ids = base.map((r) => r.id);
+  const { data: people } = ids.length
+    ? await supabase.from("profiles").select("id, full_name, email").in("id", ids)
+    : { data: [] };
+  const pById = new Map((people ?? []).map((p) => [p.id, p as { full_name: string; email: string }]));
+  const rows: Row[] = base.map((r) => ({ ...r, profiles: pById.get(r.id) ?? null }));
   const pending = rows.filter((r) => !r.is_approved);
   const approved = rows.filter((r) => r.is_approved);
 
