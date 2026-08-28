@@ -15,19 +15,37 @@ const body = Inter({
   display: "swap",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://telpsam-portal.vercel.app";
+const description =
+  "The TELPSAM alumni network. A safe, guided space where students learn from those who have gone ahead. Mentorship is coordinated and protected by the TELPSAM Program Coordinators.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "TELPSAM Alumni & Mentorship Portal",
     template: "%s · TELPSAM Portal",
   },
-  description:
-    "The TELPSAM alumni network. A safe, guided space where students learn from those who have gone ahead. Mentorship is coordinated and protected by the TELPSAM Program Coordinators.",
+  description,
   applicationName: "TELPSAM Portal",
   manifest: "/manifest.json",
   icons: {
-    icon: "/telpsam-logo.png",
-    shortcut: "/telpsam-logo.png",
-    apple: "/telpsam-logo.png",
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/apple-icon.png",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "TELPSAM Portal",
+    title: "TELPSAM Alumni & Mentorship Portal",
+    description,
+    url: siteUrl,
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "TELPSAM Alumni & Mentorship Portal" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TELPSAM Alumni & Mentorship Portal",
+    description,
+    images: ["/og.png"],
   },
   appleWebApp: { capable: true, title: "TELPSAM", statusBarStyle: "default" },
 };
