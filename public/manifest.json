@@ -1,0 +1,12 @@
+{
+  "name": "TELPSAM Alumni & Mentorship Portal",
+  "short_name": "TELPSAM",
+  "description": "The TELPSAM alumni network and guided mentorship portal.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f8fa",
+  "theme_color": "#14213d",
+  "icons": [
+    { "src": "/telpsam-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+/*
+  TELPSAM Alumni Portal design system.
+  Tone: credible and warm. Deep academic navy, a warm gold accent, generous
+  whitespace, a serif for headings (authority) + clean sans for body (modern).
+*/
+
+@theme {
+  /* Brand */
+  --color-navy: #14213d;
+  --color-navy-700: #1d2d52;
+  --color-navy-600: #2a3b6b;
+  --color-ink: #101828;
+  --color-body: #475467;
+  --color-muted: #667085;
+
+  --color-gold: #c79a3a;
+  --color-gold-600: #b0842a;
+  --color-gold-soft: #f6ead0;
+
+  /* Vibrant accents to bring the portal to life */
+  --color-teal: #0e9488;
+  --color-teal-soft: #d6f2ee;
+  --color-coral: #ef5f45;
+  --color-coral-soft: #fde3dd;
+  --color-violet: #6d5ae6;
+  --color-violet-soft: #e8e5fb;
+
+  --color-surface: #ffffff;
+  --color-canvas: #f7f8fa;
+  --color-line: #e6e8ec;
+  --color-line-soft: #eef0f3;
+
+  --color-success: #2f855a;
+  --color-danger: #c0392b;
+
+  /* Fonts (wired via next/font in layout.tsx) */
+  --font-serif: var(--font-heading), Georgia, serif;
+  --font-sans: var(--font-body), system-ui, sans-serif;
+
+  /* Type scale */
+  --text-display: 3rem;
+  --text-display--line-height: 1.05;
+  --text-h1: 2.25rem;
+  --text-h1--line-height: 1.1;
+  --text-h2: 1.6rem;
+  --text-h2--line-height: 1.2;
+}
+
+* {
+  border-color: var(--color-line);
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-body);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* In @layer base so Tailwind text-colour utilities (e.g. text-white on a hero
+   heading) can override the default ink colour. */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-serif);
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+}
+
+/* ---- Reusable components ---- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.6rem;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--color-navy);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--color-navy-700);
+}
+.btn-gold {
+  background: var(--color-gold);
+  color: #23180a;
+}
+.btn-gold:hover {
+  background: var(--color-gold-600);
+}
+.btn-outline {
+  border: 1px solid var(--color-line);
+  background: #fff;
+  color: var(--color-ink);
+}
+.btn-outline:hover {
+  border-color: var(--color-navy);
+  color: var(--color-navy);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.field {
+  width: 100%;
+  border: 1px solid var(--color-line);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field::placeholder {
+  color: var(--color-muted);
+}
+.field:focus {
+  border-color: var(--color-navy);
+  box-shadow: 0 0 0 3px rgba(20, 33, 61, 0.08);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 0.9rem;
+}
+
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-gold-600);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--color-line-soft);
+  color: var(--color-navy);
+}
