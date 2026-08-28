@@ -498,6 +498,43 @@ create policy "avatar owner update" on storage.objects for update
   using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
 
 -- ============================================================================
+-- Performance indexes (foreign keys are NOT auto-indexed by Postgres).
+-- ============================================================================
+create index if not exists messages_mentorship_created_idx on public.messages (mentorship_id, created_at);
+create index if not exists messages_sender_idx            on public.messages (sender_id);
+create index if not exists mentorships_mentor_idx  on public.mentorships (mentor_id);
+create index if not exists mentorships_mentee_idx  on public.mentorships (mentee_id);
+create index if not exists mentorships_status_idx  on public.mentorships (status);
+create index if not exists mentorships_expires_idx on public.mentorships (expires_at);
+create index if not exists requests_student_idx   on public.mentorship_requests (student_id);
+create index if not exists requests_status_idx     on public.mentorship_requests (status);
+create index if not exists reports_mentorship_idx  on public.reports (mentorship_id);
+create index if not exists reports_status_idx       on public.reports (status);
+create index if not exists calls_mentorship_idx    on public.call_requests (mentorship_id);
+create index if not exists calls_status_idx         on public.call_requests (status);
+create index if not exists ext_mentorship_idx      on public.extension_requests (mentorship_id);
+create index if not exists ext_status_idx           on public.extension_requests (status);
+create index if not exists checkins_mentorship_idx on public.checkins (mentorship_id);
+create index if not exists support_member_created_idx on public.support_messages (member_id, created_at);
+create index if not exists alumni_pub_idx     on public.alumni_profiles (is_approved, is_published);
+create index if not exists students_appr_idx  on public.student_profiles (is_approved);
+create index if not exists audit_actor_idx  on public.audit_log (actor_id);
+create index if not exists audit_target_idx on public.audit_log (target_id);
+
+-- Ends mentorships past their 3-month period (also run nightly via pg_cron;
+-- see supabase/migrations/015_expiry_cron.sql).
+create or replace function public.end_expired_mentorships()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update public.mentorships
+     set status = 'ended', ended_at = coalesce(ended_at, now())
+   where status <> 'ended' and expires_at is not null and expires_at < now();
+$$;
+
+-- ============================================================================
 -- After running this, make yourself the admin:
 --   update public.profiles set role = 'admin' where email = 'you@example.com';
 -- (Sign up first so the row exists.)

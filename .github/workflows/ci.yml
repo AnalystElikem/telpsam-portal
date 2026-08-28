@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+
+  # Optional: RLS smoke tests. Runs only if the repo has the required secrets.
+  # Add them under Settings → Secrets and variables → Actions.
+  rls-tests:
+    runs-on: ubuntu-latest
+    if: ${{ vars.RUN_RLS_TESTS == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: RLS smoke tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          RLS_STUDENT_A_EMAIL: ${{ secrets.RLS_STUDENT_A_EMAIL }}
+          RLS_STUDENT_A_PASSWORD: ${{ secrets.RLS_STUDENT_A_PASSWORD }}
+          RLS_STUDENT_B_ID: ${{ secrets.RLS_STUDENT_B_ID }}
+        run: npm run test:rls

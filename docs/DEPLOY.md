@@ -28,8 +28,9 @@ Supabase → SQL Editor. If the database is fresh, run `supabase/schema.sql` onc
 If it already has earlier tables, run the migrations **in order** (idempotent):
 
 ```
-002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013
+002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013 → 014 → 015
 ```
+(`015` needs the pg_cron extension enabled first — Supabase → Database → Extensions.)
 
 Then make yourself the super admin (after you've signed up once so the row exists):
 

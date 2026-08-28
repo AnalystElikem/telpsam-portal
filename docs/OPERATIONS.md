@@ -55,11 +55,26 @@ npm run test:rls
 
 Wire this into CI so a bad policy change fails the build.
 
-## Error monitoring (optional but recommended)
+## Error monitoring (Sentry)
 
-Add [Sentry](https://sentry.io) with `npx @sentry/wizard@latest -i nextjs`,
-then set `SENTRY_DSN`. It surfaces runtime errors before members report them.
-This isn't wired in yet — it needs your account and DSN.
+Wiring is in place at `src/instrumentation.ts` (a safe no-op until enabled). To
+turn it on: `npm install @sentry/nextjs`, then set `SENTRY_DSN` in the
+environment (Vercel + `.env.local`). Captures server-side errors. For full
+client capture + source maps, `npx @sentry/wizard@latest -i nextjs` also works.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs typecheck + lint on every push/PR. To also run
+the RLS smoke tests in CI, set repo **variable** `RUN_RLS_TESTS=true` and add
+the secrets it reads (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`RLS_STUDENT_A_EMAIL`, `RLS_STUDENT_A_PASSWORD`, `RLS_STUDENT_B_ID`) against a
+STAGING project.
+
+## Scheduled jobs
+
+`migrations/015_expiry_cron.sql` schedules a nightly pg_cron job that ends
+mentorships past their 3-month period. Enable the **pg_cron** extension first
+(Supabase → Database → Extensions), then run the migration.
 
 ## Security notes
 
