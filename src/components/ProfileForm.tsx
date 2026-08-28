@@ -110,7 +110,7 @@ export default function ProfileForm({ initial }: { initial: ProfileInitial }) {
           <label className="btn btn-outline cursor-pointer">
             <Upload className="h-4 w-4" />
             {uploading ? "Uploading…" : "Upload photo"}
-            <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} disabled={uploading} />
+            <input type="file" accept="image/*,.heic,.heif" className="hidden" onChange={handlePhoto} disabled={uploading} />
           </label>
           {uploadError && <p className="mt-1 text-xs text-danger">{uploadError}</p>}
           <p className="mt-1 text-xs text-muted">A clear headshot works best.</p>

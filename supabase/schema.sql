@@ -486,9 +486,14 @@ create trigger guard_profile_role
 -- =========================================================================
 -- Storage bucket for profile photos.
 -- =========================================================================
-insert into storage.buckets (id, name, public)
-values ('avatars', 'avatars', true)
-on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('avatars', 'avatars', true, 5242880)
+on conflict (id) do update
+  set public = true, file_size_limit = 5242880, allowed_mime_types = null;
+
+drop policy if exists "avatar public read"  on storage.objects;
+drop policy if exists "avatar owner upload"  on storage.objects;
+drop policy if exists "avatar owner update"  on storage.objects;
 
 create policy "avatar public read" on storage.objects for select
   using (bucket_id = 'avatars');
