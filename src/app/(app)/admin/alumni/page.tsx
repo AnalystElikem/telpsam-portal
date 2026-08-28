@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { UserRound, CheckCircle2, Clock } from "lucide-react";
+import { UserRound, CheckCircle2, Clock, Search } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { approveAlumnus } from "@/app/actions/admin";
@@ -19,8 +19,13 @@ type Row = {
   profiles: { full_name: string; avatar_url: string | null; campus: string | null; email: string } | null;
 };
 
-export default async function AdminAlumni() {
+export default async function AdminAlumni({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   await requireRole("admin");
+  const { q } = await searchParams;
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -28,7 +33,14 @@ export default async function AdminAlumni() {
     .select("id, gender, job_title, organization, bio, is_approved, is_published, grad_year, profiles(full_name, avatar_url, campus, email)")
     .order("created_at", { ascending: false });
 
-  const rows = (data as unknown as Row[]) ?? [];
+  let rows = (data as unknown as Row[]) ?? [];
+  const needle = (q || "").trim().toLowerCase();
+  if (needle) {
+    rows = rows.filter((r) =>
+      [r.profiles?.full_name, r.profiles?.email, r.organization, r.job_title]
+        .filter(Boolean).join(" ").toLowerCase().includes(needle)
+    );
+  }
   const pending = rows.filter((r) => !r.is_approved);
   const approved = rows.filter((r) => r.is_approved);
 
@@ -36,6 +48,17 @@ export default async function AdminAlumni() {
     <div>
       <h1 className="text-2xl font-bold text-ink">Alumni</h1>
       <p className="mt-1 text-body">Review new profiles before they appear to students.</p>
+
+      <form className="relative mt-4 max-w-sm">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+        <input name="q" defaultValue={q || ""} placeholder="Search by name, email, or organisation…" className="field !pl-10" />
+      </form>
+      {needle && (
+        <p className="mt-2 text-sm text-muted">
+          {rows.length} result{rows.length === 1 ? "" : "s"} for “{q}”.{" "}
+          <a href="/admin/alumni" className="font-semibold text-navy hover:underline">Clear</a>
+        </p>
+      )}
 
       <Section title="Awaiting review" empty="No alumni are waiting for review.">
         {pending.map((r) => (

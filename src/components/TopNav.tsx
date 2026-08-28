@@ -67,6 +67,40 @@ export default async function TopNav({ profile }: { profile: Profile }) {
       "/admin/reports": reports.count ?? 0,
       "/admin/support": supportNeedsReply,
     };
+  } else {
+    // Members: unread conversations + unread coordinator replies.
+    const supabase = await createClient();
+    const me = profile.id;
+
+    const { data: ms } = await supabase.from("mentorships").select("id"); // RLS: only mine
+    const ids = (ms ?? []).map((m) => m.id);
+
+    let unreadConvos = 0;
+    if (ids.length) {
+      const [readsRes, msgsRes] = await Promise.all([
+        supabase.from("reads").select("ref_id, seen_at").eq("scope", "mentorship"),
+        supabase.from("messages").select("mentorship_id, created_at").in("mentorship_id", ids).neq("sender_id", me).order("created_at", { ascending: false }),
+      ]);
+      const seen = new Map((readsRes.data ?? []).map((r) => [r.ref_id, r.seen_at]));
+      const latestOther = new Map<string, string>();
+      for (const m of msgsRes.data ?? []) if (!latestOther.has(m.mentorship_id)) latestOther.set(m.mentorship_id, m.created_at);
+      for (const [mid, t] of latestOther) {
+        const s = seen.get(mid);
+        if (!s || new Date(t).getTime() > new Date(s).getTime()) unreadConvos++;
+      }
+    }
+
+    const [supLatest, supRead] = await Promise.all([
+      supabase.from("my_support_thread").select("from_coordinator, created_at").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("reads").select("seen_at").eq("scope", "support").maybeSingle(),
+    ]);
+    let supportUnread = 0;
+    if (supLatest.data?.from_coordinator) {
+      const s = supRead.data?.seen_at;
+      if (!s || new Date(supLatest.data.created_at).getTime() > new Date(s).getTime()) supportUnread = 1;
+    }
+
+    badges = { "/mentorships": unreadConvos, "/support": supportUnread };
   }
 
   return (

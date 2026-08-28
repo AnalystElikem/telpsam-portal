@@ -145,6 +145,16 @@ create table if not exists public.support_messages (
   created_at       timestamptz not null default now()
 );
 
+-- ------------------------------------------------------------------ reads
+-- Per-user last-seen timestamps, for "unread" badges on member menus.
+create table if not exists public.reads (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  scope   text not null,
+  ref_id  uuid not null,
+  seen_at timestamptz not null default now(),
+  primary key (user_id, scope, ref_id)
+);
+
 -- --------------------------------------------------------------- checkins
 -- Periodic 'how is it going?' responses from mentorship participants.
 create table if not exists public.checkins (
@@ -294,6 +304,7 @@ alter table public.call_requests       enable row level security;
 alter table public.extension_requests  enable row level security;
 alter table public.support_messages    enable row level security;
 alter table public.checkins            enable row level security;
+alter table public.reads               enable row level security;
 alter table public.deletion_requests   enable row level security;
 alter table public.audit_log           enable row level security;
 
@@ -394,6 +405,10 @@ create policy "participant insert checkin" on public.checkins for insert
   with check (respondent_id = auth.uid() and public.in_mentorship(mentorship_id));
 create policy "participant read own checkin" on public.checkins for select using (respondent_id = auth.uid());
 create policy "admin checkins all" on public.checkins for all using (public.is_admin());
+
+-- reads ------------------------------------------------------------------
+create policy "own reads all" on public.reads for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- extension_requests -----------------------------------------------------
 create policy "participant create extension" on public.extension_requests for insert

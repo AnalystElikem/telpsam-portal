@@ -20,6 +20,12 @@ export default async function SupportPage() {
     .order("created_at", { ascending: true });
   const messages = (data as Msg[]) ?? [];
 
+  // Mark the support thread read (drives the unread badge).
+  await supabase.from("reads").upsert(
+    { user_id: me.id, scope: "support", ref_id: me.id, seen_at: new Date().toISOString() },
+    { onConflict: "user_id,scope,ref_id" }
+  );
+
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">

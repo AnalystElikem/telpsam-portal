@@ -83,6 +83,14 @@ export default async function ConversationPage({
   const isFlagged = flags.length > 0;
   const canSeeThread = isParticipant || (isCoordinatorView && isFlagged);
 
+  // Mark this conversation read for the participant (drives the unread badge).
+  if (isParticipant) {
+    await supabase.from("reads").upsert(
+      { user_id: me.id, scope: "mentorship", ref_id: id, seen_at: new Date().toISOString() },
+      { onConflict: "user_id,scope,ref_id" }
+    );
+  }
+
   // Record when a coordinator reads a flagged conversation (deduped ~10 min).
   if (isCoordinatorView && isFlagged) {
     const since = new Date(Date.now() - 10 * 60_000).toISOString();
