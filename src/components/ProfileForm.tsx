@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { UserRound, Upload } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { saveAlumniProfile } from "@/app/actions/alumni";
+import { uploadAvatar } from "@/app/actions/avatar";
 import BranchSelect from "@/components/BranchSelect";
 import PhoneInput from "@/components/PhoneInput";
 
@@ -58,32 +58,27 @@ export default function ProfileForm({ initial }: { initial: ProfileInitial }) {
     setUploadError("");
     setUploading(true);
     try {
-      const supabase = createClient();
-      // Shrink big phone photos in the browser so uploads are small and fast.
+      // Shrink big phone photos in the browser so the upload is small and fast.
       let blob: Blob = file;
-      let ext = (file.name.split(".").pop() || "jpg").toLowerCase();
       try {
-        blob = await downscaleImage(file, 800, 0.85);
-        ext = "jpg";
+        blob = await downscaleImage(file, 800, 0.82);
       } catch {
-        // Unusual format we can't process — fall back to the original file.
+        // Unusual format we can't process — send the original.
       }
-      const path = `${initial.userId}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("avatars")
-        .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
-      if (error) throw error;
-      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      setAvatarUrl(data.publicUrl);
+      const fd = new FormData();
+      fd.append("file", blob, "avatar.jpg");
+      const res = await uploadAvatar(fd);
+      if (res.error) throw new Error(res.error);
+      if (res.url) setAvatarUrl(res.url);
     } catch (err) {
       const msg = (err as { message?: string })?.message || "";
       console.error("Avatar upload failed:", err);
       setUploadError(
         /bucket/i.test(msg)
           ? "Photo storage isn't set up yet — please let the coordinators know."
-          : /row-level|policy|unauthor/i.test(msg)
+          : /sign(ed)? in/i.test(msg)
             ? "You need to be signed in to upload a photo. Try signing in again."
-            : "Couldn't upload that image. Please try a JPG or PNG."
+            : "Couldn't upload that image. Please try again."
       );
     } finally {
       setUploading(false);

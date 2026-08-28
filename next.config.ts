@@ -54,6 +54,10 @@ const nextConfig: NextConfig = {
         : { protocol: "https" as const, hostname: "*.supabase.co" },
     ],
   },
+  experimental: {
+    // Profile photos are shrunk client-side, but allow headroom for the fallback.
+    serverActions: { bodySizeLimit: "6mb" },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
