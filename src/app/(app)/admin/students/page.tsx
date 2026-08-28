@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { UserRound, CheckCircle2, Clock, Phone, GraduationCap, MapPin, Users } from "lucide-react";
+import { UserRound, CheckCircle2, Clock, Phone, GraduationCap, MapPin, Users, Search } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { approveStudent } from "@/app/actions/admin";
@@ -24,10 +24,10 @@ type Row = {
 export default async function AdminStudents({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; q?: string }>;
 }) {
   await requireRole("admin");
-  const { error } = await searchParams;
+  const { error, q } = await searchParams;
   const supabase = await createClient();
 
   // Note: student_profiles has two foreign keys to profiles (id and
@@ -44,7 +44,15 @@ export default async function AdminStudents({
     ? await supabase.from("profiles").select("id, full_name, email").in("id", ids)
     : { data: [] };
   const pById = new Map((people ?? []).map((p) => [p.id, p as { full_name: string; email: string }]));
-  const rows: Row[] = base.map((r) => ({ ...r, profiles: pById.get(r.id) ?? null }));
+  let rows: Row[] = base.map((r) => ({ ...r, profiles: pById.get(r.id) ?? null }));
+
+  const needle = (q || "").trim().toLowerCase();
+  if (needle) {
+    rows = rows.filter((r) =>
+      [r.profiles?.full_name, r.profiles?.email, r.school, r.church_branch]
+        .filter(Boolean).join(" ").toLowerCase().includes(needle)
+    );
+  }
   const pending = rows.filter((r) => !r.is_approved);
   const approved = rows.filter((r) => r.is_approved);
 
@@ -58,6 +66,17 @@ export default async function AdminStudents({
 
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-danger">{error}</p>
+      )}
+
+      <form className="relative mt-4 max-w-sm">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+        <input name="q" defaultValue={q || ""} placeholder="Search by name, email, school, or branch…" className="field !pl-10" />
+      </form>
+      {needle && (
+        <p className="mt-2 text-sm text-muted">
+          {rows.length} result{rows.length === 1 ? "" : "s"} for “{q}”.{" "}
+          <a href="/admin/students" className="font-semibold text-navy hover:underline">Clear</a>
+        </p>
       )}
 
       <Section title="Awaiting approval" empty="No students are waiting for approval.">
