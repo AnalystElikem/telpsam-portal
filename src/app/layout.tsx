@@ -49,7 +49,7 @@ export default function RootLayout({
       <body>
         {testMode && (
           <div className="bg-coral px-4 py-1.5 text-center text-xs font-semibold text-white">
-            Test environment — this is a trial. Accounts and data may be reset. Please don&apos;t use real sensitive information.
+            Test environment — this is a trial. Accounts and data may be reset.
           </div>
         )}
         {children}
