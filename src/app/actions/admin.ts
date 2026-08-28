@@ -34,6 +34,13 @@ export async function approveAlumnus(formData: FormData) {
     targetType: "alumnus",
     targetId: id,
   });
+  if (approve) {
+    await notifyUserById(
+      id,
+      "Your TELPSAM alumni profile is approved",
+      "Welcome aboard. Your alumni profile has been approved. Sign in to publish it and start mentoring students."
+    );
+  }
   revalidatePath("/admin/alumni");
 }
 
@@ -66,6 +73,13 @@ export async function approveStudent(formData: FormData) {
     targetId: id,
     detail: approve ? "guardian consent confirmed" : undefined,
   });
+  if (approve) {
+    await notifyUserById(
+      id,
+      "Your TELPSAM account is approved",
+      "Good news — a Program Coordinator has approved your account. Sign in to explore the alumni network and request mentorship."
+    );
+  }
   revalidatePath("/admin/students");
 }
 
@@ -81,14 +95,15 @@ export async function resolveExtension(formData: FormData) {
     .maybeSingle();
   if (!req || req.status !== "pending") redirect("/admin/alerts");
 
+  const { data: m } = await supabase
+    .from("mentorships")
+    .select("expires_at, mentor_id, mentee_id")
+    .eq("id", req.mentorship_id)
+    .maybeSingle();
+
   if (approve) {
     // Extend by 2 weeks from now (or from the current expiry, whichever is later)
     // and reopen the mentorship.
-    const { data: m } = await supabase
-      .from("mentorships")
-      .select("expires_at")
-      .eq("id", req.mentorship_id)
-      .maybeSingle();
     const from = m?.expires_at && new Date(m.expires_at).getTime() > Date.now()
       ? new Date(m.expires_at)
       : new Date();
@@ -108,6 +123,20 @@ export async function resolveExtension(formData: FormData) {
     targetType: "mentorship",
     targetId: req.mentorship_id,
   });
+
+  // Let both participants know the decision (content-free).
+  if (m) {
+    const subject = approve
+      ? "Your TELPSAM mentorship was extended"
+      : "Update on your TELPSAM mentorship extension";
+    const body = approve
+      ? "Your mentorship has been extended by 2 weeks. Sign in to continue the conversation."
+      : "Your extension request wasn't approved this time. Thank you for taking part, we encourage the relationship to continue through your branch or chapter.";
+    await Promise.all([
+      notifyUserById(m.mentee_id, subject, body),
+      notifyUserById(m.mentor_id, subject, body),
+    ]);
+  }
 
   revalidatePath("/admin/alerts");
   redirect("/admin/alerts");
