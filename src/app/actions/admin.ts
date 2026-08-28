@@ -69,6 +69,50 @@ export async function approveStudent(formData: FormData) {
   revalidatePath("/admin/students");
 }
 
+export async function resolveExtension(formData: FormData) {
+  const { supabase, adminId } = await assertAdmin();
+  const id = String(formData.get("id") || "");
+  const approve = String(formData.get("approve") || "") === "true";
+
+  const { data: req } = await supabase
+    .from("extension_requests")
+    .select("id, mentorship_id, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (!req || req.status !== "pending") redirect("/admin/alerts");
+
+  if (approve) {
+    // Extend by 2 weeks from now (or from the current expiry, whichever is later)
+    // and reopen the mentorship.
+    const { data: m } = await supabase
+      .from("mentorships")
+      .select("expires_at")
+      .eq("id", req.mentorship_id)
+      .maybeSingle();
+    const from = m?.expires_at && new Date(m.expires_at).getTime() > Date.now()
+      ? new Date(m.expires_at)
+      : new Date();
+    from.setDate(from.getDate() + 14);
+    await supabase
+      .from("mentorships")
+      .update({ status: "active", expires_at: from.toISOString(), ended_at: null, ended_by: null })
+      .eq("id", req.mentorship_id);
+  }
+
+  await supabase
+    .from("extension_requests")
+    .update({ status: approve ? "approved" : "declined", resolved_by: adminId, resolved_at: new Date().toISOString() })
+    .eq("id", id);
+
+  await logAudit(supabase, adminId, approve ? "approve_extension" : "decline_extension", {
+    targetType: "mentorship",
+    targetId: req.mentorship_id,
+  });
+
+  revalidatePath("/admin/alerts");
+  redirect("/admin/alerts");
+}
+
 export async function markCallHandled(formData: FormData) {
   const { supabase, adminId } = await assertAdmin();
   const id = String(formData.get("id") || "");
@@ -95,9 +139,13 @@ export async function assignMentorship(formData: FormData) {
     redirect(`/admin/requests?error=${encodeURIComponent(`That mentor already has ${MAX_MENTEES} active mentees.`)}`);
   }
 
+  // Mentorships are time-bound: they run for 3 months, then end automatically.
+  const expires = new Date();
+  expires.setMonth(expires.getMonth() + 3);
+
   const { data: created } = await supabase
     .from("mentorships")
-    .insert({ mentor_id, mentee_id, request_id, created_by: adminId })
+    .insert({ mentor_id, mentee_id, request_id, created_by: adminId, expires_at: expires.toISOString() })
     .select("id")
     .single();
 

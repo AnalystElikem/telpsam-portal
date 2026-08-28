@@ -12,6 +12,7 @@ const points = [
   "Mentorship pairings are assigned and overseen by the TELPSAM Program Coordinators.",
   "No requests for money, gifts, or favours, from anyone, ever.",
   "No private meet-ups arranged through the portal.",
+  "Each mentorship runs for 3 months, then ends automatically (a one-time 2-week extension can be requested). This exposes you to alumni you wouldn't usually reach; it doesn't replace mentorship in your branch or chapter.",
   "Your conversations are private. Coordinators don't read them, but anything that breaks these rules is flagged automatically.",
   "Treat one another with respect; report anything that feels wrong.",
 ];

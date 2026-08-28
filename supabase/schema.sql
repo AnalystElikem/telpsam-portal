@@ -106,6 +106,7 @@ create table if not exists public.mentorships (
   created_by  uuid references public.profiles(id),
   ended_at    timestamptz,
   ended_by    uuid references public.profiles(id),
+  expires_at  timestamptz,   -- mentorships are time-bound (3 months)
   created_at  timestamptz not null default now()
 );
 
@@ -118,6 +119,30 @@ create table if not exists public.call_requests (
   requester_id  uuid not null references public.profiles(id) on delete cascade,
   status        text not null default 'open' check (status in ('open', 'handled')),
   created_at    timestamptz not null default now()
+);
+
+-- ---------------------------------------------------- extension_requests
+-- A participant asks to extend a time-bound mentorship; a coordinator decides.
+create table if not exists public.extension_requests (
+  id            uuid primary key default gen_random_uuid(),
+  mentorship_id uuid not null references public.mentorships(id) on delete cascade,
+  requester_id  uuid not null references public.profiles(id) on delete cascade,
+  status        text not null default 'pending' check (status in ('pending', 'approved', 'declined')),
+  created_at    timestamptz not null default now(),
+  resolved_by   uuid references public.profiles(id),
+  resolved_at   timestamptz
+);
+
+-- ------------------------------------------------------- support_messages
+-- Member <-> coordinators chat. Any coordinator can reply; the member is never
+-- told which one. Members write here but read via my_support_thread (below).
+create table if not exists public.support_messages (
+  id               uuid primary key default gen_random_uuid(),
+  member_id        uuid not null references public.profiles(id) on delete cascade,
+  sender_id        uuid not null references public.profiles(id) on delete cascade,
+  from_coordinator boolean not null default false,
+  body             text not null,
+  created_at       timestamptz not null default now()
 );
 
 -- --------------------------------------------------------------- checkins
@@ -266,6 +291,8 @@ alter table public.mentorships         enable row level security;
 alter table public.messages            enable row level security;
 alter table public.reports             enable row level security;
 alter table public.call_requests       enable row level security;
+alter table public.extension_requests  enable row level security;
+alter table public.support_messages    enable row level security;
 alter table public.checkins            enable row level security;
 alter table public.deletion_requests   enable row level security;
 alter table public.audit_log           enable row level security;
@@ -330,6 +357,15 @@ where
 
 grant select on public.member_cards to authenticated;
 
+-- my_support_thread: a member's own coordinator chat, without exposing which
+-- coordinator replied.
+create or replace view public.my_support_thread as
+select id, member_id, from_coordinator, body, created_at
+from public.support_messages
+where member_id = auth.uid();
+
+grant select on public.my_support_thread to authenticated;
+
 -- alumni_contact (private phone) -----------------------------------------
 create policy "own alumni contact read"   on public.alumni_contact for select using (id = auth.uid());
 create policy "own alumni contact upsert"  on public.alumni_contact for insert with check (id = auth.uid());
@@ -358,6 +394,17 @@ create policy "participant insert checkin" on public.checkins for insert
   with check (respondent_id = auth.uid() and public.in_mentorship(mentorship_id));
 create policy "participant read own checkin" on public.checkins for select using (respondent_id = auth.uid());
 create policy "admin checkins all" on public.checkins for all using (public.is_admin());
+
+-- extension_requests -----------------------------------------------------
+create policy "participant create extension" on public.extension_requests for insert
+  with check (requester_id = auth.uid() and public.in_mentorship(mentorship_id));
+create policy "participant read extension" on public.extension_requests for select using (public.in_mentorship(mentorship_id));
+create policy "admin extension all" on public.extension_requests for all using (public.is_admin());
+
+-- support_messages -------------------------------------------------------
+create policy "member send support" on public.support_messages for insert
+  with check (member_id = auth.uid() and sender_id = auth.uid() and from_coordinator = false);
+create policy "admin support all" on public.support_messages for all using (public.is_admin());
 
 -- deletion_requests (coordinators only) ----------------------------------
 create policy "admin deletion all" on public.deletion_requests for all using (public.is_admin());

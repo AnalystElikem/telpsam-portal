@@ -24,6 +24,12 @@ export default function MentorshipGuide({ open = false }: { open?: boolean }) {
 
       <div className="mt-3 space-y-4 text-sm text-body">
         <p>
+          <span className="font-semibold text-ink">This mentorship runs for 3 months,</span> then
+          ends automatically, so make the most of it. It is meant to open a door to an
+          alumnus you would not usually reach, not to replace mentorship in your branch
+          or chapter. A one-time 2-week extension can be requested if it helps.
+        </p>
+        <p>
           <span className="font-semibold text-ink">A good rhythm:</span> aim for a
           message or two each week, and reply within a few days. Consistency matters
           more than long messages.

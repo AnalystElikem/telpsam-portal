@@ -42,19 +42,27 @@ const sections = [
     ],
   },
   {
-    heading: "6. Suspension and removal",
+    heading: "6. Mentorships are time-bound",
+    body: [
+      "Each mentorship runs for 3 months and then ends automatically. The purpose is to expose students to alumni they would not usually reach, not to replace the informal mentorship that continues in branches and chapters.",
+      "Either participant may request a one-time 2-week extension, which a coordinator reviews and approves or declines.",
+      "You can also message the coordinators at any time through the portal; any coordinator may respond.",
+    ],
+  },
+  {
+    heading: "7. Suspension and removal",
     body: [
       "Breaking these terms or the Rules of Engagement may lead to a warning, suspension, or removal, at the discretion of the Program Coordinators.",
     ],
   },
   {
-    heading: "7. No warranty; limitation",
+    heading: "8. No warranty; limitation",
     body: [
       "The portal is provided as a ministry service, as is, without warranties. To the extent permitted by law, TELPSAM is not liable for indirect or consequential loss arising from use of the portal.",
     ],
   },
   {
-    heading: "8. Changes",
+    heading: "9. Changes",
     body: [
       "We may update these terms from time to time. Continued use of the portal means you accept the current terms.",
     ],

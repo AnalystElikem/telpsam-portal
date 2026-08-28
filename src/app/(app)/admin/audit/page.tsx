@@ -24,6 +24,13 @@ const LABELS: Record<string, string> = {
   assign_mentorship: "Assigned a mentorship",
   resolve_report: "Resolved a report",
   mark_call_handled: "Handled a call request",
+  approve_extension: "Approved an extension",
+  decline_extension: "Declined an extension",
+  request_deletion: "Requested a deletion",
+  approve_deletion: "Approved a deletion",
+  reject_deletion: "Rejected a deletion",
+  promote_coordinator: "Appointed a coordinator",
+  demote_coordinator: "Removed a coordinator",
 };
 
 export default async function AdminAudit() {

@@ -57,7 +57,21 @@ const sections = [
     ],
   },
   {
-    heading: "7. Privacy, flagging, and oversight",
+    heading: "7. Mentorships are time-bound (3 months)",
+    body: [
+      "Each mentorship runs for 3 months and then ends automatically. This is deliberate, not a limitation.",
+      "This portal exists to expose students to alumni they would not usually have access to. It is not meant to replace the ongoing, informal mentorship that should keep happening in your branch and chapter, which we want to encourage, not compete with. Keeping each pairing time-bound keeps it focused and intentional.",
+      "If continuing would genuinely help, either of you can request a one-time 2-week extension. A coordinator reviews and decides. After that, encourage the relationship to continue through your branch or chapter.",
+    ],
+  },
+  {
+    heading: "8. Reaching the coordinators",
+    body: [
+      "You can message the Program Coordinators at any time using Contact Coordinators in the menu, for a question, a concern, or help with your account. Any coordinator may reply, and you will not be told which one.",
+    ],
+  },
+  {
+    heading: "9. Privacy, flagging, and oversight",
     body: [
       "Your conversations are private. The Program Coordinators do not read mentorship chats.",
       "To keep everyone safe, the portal automatically flags messages that break these rules, such as sharing a phone number, asking for money, or trying to meet or move the conversation off-platform. When something is flagged, or when someone files a report, coordinators can then review that conversation.",

@@ -18,13 +18,14 @@ export async function sendMessage(formData: FormData) {
   const body = String(formData.get("body") || "").trim().slice(0, 5000);
   if (!mentorship_id || !body) return;
 
-  // No new messages once a mentorship has ended.
+  // No new messages once a mentorship has ended or its 3-month period is up.
   const { data: m } = await supabase
     .from("mentorships")
-    .select("status, mentor_id, mentee_id")
+    .select("status, mentor_id, mentee_id, expires_at")
     .eq("id", mentorship_id)
     .maybeSingle();
-  if (!m || m.status === "ended") return;
+  const expired = m?.expires_at ? new Date(m.expires_at).getTime() < Date.now() : false;
+  if (!m || m.status === "ended" || expired) return;
 
   // Generous rate limit: block a burst beyond MESSAGES_PER_MINUTE per minute.
   const oneMinAgo = new Date(Date.now() - 60_000).toISOString();
@@ -170,6 +171,38 @@ export async function submitCheckin(formData: FormData) {
 
   revalidatePath(`/mentorships/${mentorship_id}`);
   redirect(`/mentorships/${mentorship_id}?checkin=1`);
+}
+
+// A participant asks to extend a time-bound mentorship. A coordinator decides.
+export async function requestExtension(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const mentorship_id = String(formData.get("mentorship_id") || "");
+  if (!mentorship_id) return;
+
+  // A mentorship may be extended only once — block if any request already exists
+  // (pending, approved, or declined).
+  const { data: existing } = await supabase
+    .from("extension_requests")
+    .select("id")
+    .eq("mentorship_id", mentorship_id)
+    .limit(1)
+    .maybeSingle();
+  if (!existing) {
+    await supabase
+      .from("extension_requests")
+      .insert({ mentorship_id, requester_id: user.id });
+    await notifyAdmins(
+      "TELPSAM alert: a mentorship extension request",
+      "A member asked to extend their mentorship beyond its 3-month period. Please review it on the alerts page."
+    );
+  }
+
+  redirect(`/mentorships/${mentorship_id}?extension=1`);
 }
 
 // A participant asks for a phone call. The other party is NOT told; a

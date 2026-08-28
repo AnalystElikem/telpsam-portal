@@ -28,7 +28,7 @@ Supabase → SQL Editor. If the database is fresh, run `supabase/schema.sql` onc
 If it already has earlier tables, run the migrations **in order** (idempotent):
 
 ```
-002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012
+002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013
 ```
 
 Then make yourself the super admin (after you've signed up once so the row exists):
@@ -42,7 +42,8 @@ where email = 'elikemaflakpui@gmail.com';
 Supabase → Table Editor. Confirm **every** table shows RLS "Enabled":
 profiles, alumni_profiles, alumni_contact, student_profiles, mentorship_requests,
 mentorships, messages, reports, call_requests, checkins, deletion_requests,
-audit_log. A table with RLS off is world-readable via the anon key.
+audit_log, extension_requests, support_messages. A table with RLS off is
+world-readable via the anon key.
 
 ## 4. Supabase Auth settings
 Supabase → Authentication → ...

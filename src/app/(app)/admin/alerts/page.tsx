@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Flag, Phone, LogOut, ArrowRight, CheckCircle2, Moon } from "lucide-react";
+import { Flag, Phone, LogOut, ArrowRight, CheckCircle2, Moon, CalendarPlus } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { markCallHandled } from "@/app/actions/admin";
+import { markCallHandled, resolveExtension } from "@/app/actions/admin";
 
 export const metadata: Metadata = { title: "Alerts · Admin" };
 
@@ -25,6 +25,13 @@ export default async function AdminAlerts() {
     .eq("status", "open")
     .order("created_at", { ascending: false });
 
+  // Pending extension requests.
+  const { data: extRows } = await supabase
+    .from("extension_requests")
+    .select("id, mentorship_id, requester_id, created_at")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
   // Recently ended mentorships.
   const { data: endedRows } = await supabase
     .from("mentorships")
@@ -34,6 +41,7 @@ export default async function AdminAlerts() {
     .limit(20);
 
   const callList = calls ?? [];
+  const extensions = extRows ?? [];
   const ended = endedRows ?? [];
 
   // Dormant mentorships: active pairings with no message for a while.
@@ -61,7 +69,11 @@ export default async function AdminAlerts() {
 
   // Gather people + phones for the call requests, ended, and dormant lists.
   const mentorshipIds = Array.from(
-    new Set([...callList.map((c) => c.mentorship_id), ...ended.map((e) => e.id)])
+    new Set([
+      ...callList.map((c) => c.mentorship_id),
+      ...extensions.map((e) => e.mentorship_id),
+      ...ended.map((e) => e.id),
+    ])
   );
   const { data: ms } = mentorshipIds.length
     ? await supabase.from("mentorships").select("id, mentor_id, mentee_id").in("id", mentorshipIds)
@@ -93,7 +105,8 @@ export default async function AdminAlerts() {
   const name = (id: string | null) => (id ? pById.get(id)?.full_name || "Member" : "Member");
 
   const nothing =
-    (reports ?? []).length === 0 && callList.length === 0 && ended.length === 0 && dormant.length === 0;
+    (reports ?? []).length === 0 && callList.length === 0 && extensions.length === 0 &&
+    ended.length === 0 && dormant.length === 0;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -181,6 +194,45 @@ export default async function AdminAlerts() {
                       </button>
                     </form>
                     <span className="text-xs text-muted">{new Date(c.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Extension requests */}
+      {extensions.length > 0 && (
+        <section className="mt-8">
+          <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-navy">
+            <CalendarPlus className="h-4 w-4" /> Extension requests ({extensions.length})
+          </h2>
+          <p className="mt-1 text-xs text-muted">Approving adds 2 weeks and reopens the conversation.</p>
+          <div className="mt-3 space-y-2">
+            {extensions.map((x) => {
+              const m = mById.get(x.mentorship_id);
+              return (
+                <div key={x.id} className="card p-4">
+                  <p className="text-sm text-ink">
+                    <span className="font-semibold">{name(x.requester_id)}</span>{" "}
+                    <span className="text-muted">asked to extend the mentorship with </span>
+                    <span className="font-semibold">
+                      {m ? name(m.mentor_id === x.requester_id ? m.mentee_id : m.mentor_id) : "their partner"}
+                    </span>
+                  </p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <form action={resolveExtension}>
+                      <input type="hidden" name="id" value={x.id} />
+                      <input type="hidden" name="approve" value="true" />
+                      <button className="btn btn-primary !py-1.5 !text-xs">Approve · +2 weeks</button>
+                    </form>
+                    <form action={resolveExtension}>
+                      <input type="hidden" name="id" value={x.id} />
+                      <input type="hidden" name="approve" value="false" />
+                      <button className="btn btn-outline !py-1.5 !text-xs">Decline</button>
+                    </form>
+                    <span className="text-xs text-muted">{new Date(x.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
               );

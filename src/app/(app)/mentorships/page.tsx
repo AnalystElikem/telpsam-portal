@@ -11,6 +11,7 @@ type M = {
   mentor_id: string;
   mentee_id: string;
   status: string;
+  expires_at: string | null;
   created_at: string;
 };
 
@@ -20,9 +21,13 @@ export default async function MentorshipsPage() {
 
   const { data } = await supabase
     .from("mentorships")
-    .select("id, mentor_id, mentee_id, status, created_at")
+    .select("id, mentor_id, mentee_id, status, expires_at, created_at")
     .order("created_at", { ascending: false });
   const rows = (data as M[]) ?? [];
+  const displayStatus = (r: M) =>
+    r.status !== "ended" && r.expires_at && new Date(r.expires_at).getTime() < Date.now()
+      ? "ended"
+      : r.status;
 
   const otherIds = Array.from(
     new Set(rows.map((r) => (r.mentor_id === me.id ? r.mentee_id : r.mentor_id)))
@@ -63,7 +68,7 @@ export default async function MentorshipsPage() {
                 <div>
                   <p className="font-semibold text-ink">{other?.full_name || "Member"}</p>
                   <p className="text-sm capitalize text-body">
-                    {me.role === "alumnus" ? "Mentee" : "Mentor"} · {r.status}
+                    {me.role === "alumnus" ? "Mentee" : "Mentor"} · {displayStatus(r)}
                   </p>
                 </div>
                 <MessagesSquare className="h-5 w-5 text-navy" />

@@ -7,12 +7,14 @@ const LINKS: Record<Profile["role"], { href: string; label: string }[]> = {
     { href: "/directory", label: "Alumni Directory" },
     { href: "/requests", label: "My Requests" },
     { href: "/mentorships", label: "My Mentorship" },
+    { href: "/support", label: "Contact Coordinators" },
     { href: "/profile", label: "My Profile" },
   ],
   alumnus: [
     { href: "/profile", label: "My Profile" },
     { href: "/mentorships", label: "My Mentees" },
     { href: "/directory", label: "Directory" },
+    { href: "/support", label: "Contact Coordinators" },
   ],
   admin: [
     { href: "/admin", label: "Dashboard" },
@@ -21,6 +23,7 @@ const LINKS: Record<Profile["role"], { href: string; label: string }[]> = {
     { href: "/admin/alumni", label: "Alumni" },
     { href: "/admin/requests", label: "Requests" },
     { href: "/admin/reports", label: "Reports" },
+    { href: "/admin/support", label: "Support" },
     { href: "/admin/audit", label: "Audit" },
     { href: "/directory", label: "Directory" },
     { href: "/profile", label: "My Profile" },

@@ -6,7 +6,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
 import MentorshipGuide from "@/components/MentorshipGuide";
-import { sendMessage, reportConcern, endMentorship, requestCall, submitCheckin } from "@/app/actions/messages";
+import { sendMessage, reportConcern, endMentorship, requestCall, submitCheckin, requestExtension } from "@/app/actions/messages";
 
 export const metadata: Metadata = { title: "Conversation" };
 
@@ -18,16 +18,16 @@ export default async function ConversationPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ reported?: string; call?: string; ended?: string; checkin?: string; slow?: string }>;
+  searchParams: Promise<{ reported?: string; call?: string; ended?: string; checkin?: string; slow?: string; extension?: string }>;
 }) {
   const me = await requireProfile();
   const { id } = await params;
-  const { reported, call, ended, checkin, slow } = await searchParams;
+  const { reported, call, ended, checkin, slow, extension } = await searchParams;
   const supabase = await createClient();
 
   const { data: mentorship } = await supabase
     .from("mentorships")
-    .select("id, mentor_id, mentee_id, status, ended_at, ended_by")
+    .select("id, mentor_id, mentee_id, status, ended_at, ended_by, expires_at")
     .eq("id", id)
     .maybeSingle();
   if (!mentorship) notFound();
@@ -37,7 +37,28 @@ export default async function ConversationPage({
   const isCoordinatorView = me.role === "admin" && !isParticipant;
   if (!isParticipant && !isCoordinatorView) notFound();
 
-  const isEnded = mentorship.status === "ended";
+  const expiresAt = mentorship.expires_at ? new Date(mentorship.expires_at) : null;
+  const isExpired = expiresAt ? expiresAt.getTime() < Date.now() : false;
+  const isEnded = mentorship.status === "ended" || isExpired;
+  const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / 86_400_000) : null;
+
+  // A mentorship can be extended only ONCE. Read any existing request (either
+  // participant can see it) to decide what to show.
+  const { data: extReq } = isParticipant
+    ? await supabase
+        .from("extension_requests")
+        .select("status")
+        .eq("mentorship_id", id)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+  const hasPendingExtension = extReq?.status === "pending";
+  const extensionUsed = Boolean(extReq); // one-time: any prior request blocks another
+  const canRequestExtension =
+    isParticipant &&
+    mentorship.status !== "ended" &&
+    !extensionUsed &&
+    (isExpired || (daysLeft !== null && daysLeft <= 14));
 
   const otherId =
     mentorship.mentor_id === me.id ? mentorship.mentee_id : mentorship.mentor_id;
@@ -133,7 +154,9 @@ export default async function ConversationPage({
 
       {isEnded && (
         <p className="mt-3 rounded-lg border border-line bg-canvas px-3 py-2 text-xs text-body">
-          This mentorship has ended. The conversation is now read-only.
+          {isExpired && mentorship.status !== "ended"
+            ? "This mentorship has reached the end of its 3-month period, so the conversation is now read-only."
+            : "This mentorship has ended. The conversation is now read-only."}
           {isCoordinatorView && mentorship.ended_by && (
             <>
               {" "}
@@ -147,6 +170,39 @@ export default async function ConversationPage({
               .
             </>
           )}
+        </p>
+      )}
+
+      {isParticipant && !isEnded && expiresAt && (
+        <p className="mt-3 rounded-lg bg-canvas px-3 py-2 text-xs text-muted">
+          This mentorship runs until {expiresAt.toLocaleDateString()}
+          {daysLeft !== null && daysLeft <= 14 ? ` (${daysLeft} day${daysLeft === 1 ? "" : "s"} left)` : ""}.
+          It ends automatically then. A one-time 2-week extension can be requested.
+        </p>
+      )}
+
+      {hasPendingExtension && (
+        <p className="mt-3 rounded-lg bg-gold-soft/50 px-3 py-2 text-xs text-ink">
+          An extension request is with the Program Coordinators.
+        </p>
+      )}
+
+      {isParticipant && extensionUsed && !hasPendingExtension && (
+        <p className="mt-3 rounded-lg bg-canvas px-3 py-2 text-xs text-muted">
+          This mentorship has already used its one-time extension and can&apos;t be extended again.
+        </p>
+      )}
+
+      {canRequestExtension && (
+        <form action={requestExtension} className="mt-3">
+          <input type="hidden" name="mentorship_id" value={id} />
+          <button className="btn btn-outline !py-1.5 !text-sm">Request a one-time 2-week extension</button>
+        </form>
+      )}
+
+      {extension && (
+        <p className="mt-3 rounded-lg bg-green-50 p-3 text-sm text-success">
+          Your extension request has been sent to the Program Coordinators.
         </p>
       )}
 

@@ -146,7 +146,9 @@ export default async function Home() {
           <p className="mt-3 leading-relaxed text-body">
             Students do not cold-contact alumni. Every mentorship is arranged and
             watched over by the TELPSAM Program Coordinators, so the relationship
-            is safe for both sides.
+            is safe for both sides. Each pairing runs for 3 months, enough to open a
+            door to an alumnus you would not usually reach, without replacing the
+            mentorship that continues in your branch and chapter.
           </p>
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
