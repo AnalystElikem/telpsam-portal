@@ -229,7 +229,28 @@ export async function updateRequestStatus(formData: FormData) {
 export async function resolveReport(formData: FormData) {
   const { supabase, adminId } = await assertAdmin();
   const id = String(formData.get("id") || "");
-  await supabase.from("reports").update({ status: "resolved" }).eq("id", id);
+
+  // A conversation can accumulate several auto-flags (one per offending message).
+  // Resolving one clears them all for that conversation, so a coordinator only
+  // has to act once instead of dismissing each flagged message separately.
+  const { data: r } = await supabase
+    .from("reports")
+    .select("mentorship_id, source")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (r?.mentorship_id && r.source === "auto") {
+    await supabase
+      .from("reports")
+      .update({ status: "resolved" })
+      .eq("mentorship_id", r.mentorship_id)
+      .eq("source", "auto")
+      .eq("status", "open");
+  } else {
+    await supabase.from("reports").update({ status: "resolved" }).eq("id", id);
+  }
+
   await logAudit(supabase, adminId, "resolve_report", { targetType: "report", targetId: id });
   revalidatePath("/admin/reports");
+  revalidatePath("/admin/alerts");
 }

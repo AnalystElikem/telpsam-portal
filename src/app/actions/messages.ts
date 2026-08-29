@@ -80,34 +80,36 @@ export async function sendMessage(formData: FormData) {
   }
 
   if (assessment.flag) {
-    // Dedupe so we don't pile up alerts. A HIGH flag may still be raised even if
-    // a LOW one is open (an escalation); a LOW flag is skipped if anything auto
-    // is already open for this conversation.
-    const wanted = assessment.severity === "high" ? ["high"] : ["high", "low"];
-    const { count: openAuto } = await supabase
+    // Record EVERY offending message (not just the first) so coordinators can
+    // see the whole pattern of flagged bits — they only ever see the flagged
+    // messages, so hiding later ones would hide an escalation. To avoid alert
+    // spam we debounce the EMAIL, not the record: coordinators are pinged once
+    // per conversation and stay pinged only until they resolve it.
+    const { count: openHigh } = await supabase
       .from("reports")
       .select("*", { count: "exact", head: true })
       .eq("mentorship_id", mentorship_id)
       .eq("source", "auto")
       .eq("status", "open")
-      .in("severity", wanted);
-    if ((openAuto ?? 0) === 0) {
-      await supabase.from("reports").insert({
-        reporter_id: user.id,
-        mentorship_id,
-        message_id: inserted?.id ?? null,
-        source: "auto",
-        severity: assessment.severity,
-        reason: assessment.reason || `Automatic flag: ${assessment.categories.join(", ")}`,
-        details: body.slice(0, 1000),
-      });
-      // Only HIGH-confidence flags ping coordinators. Low ones wait on the list.
-      if (assessment.severity === "high") {
-        await notifyAdmins(
-          "TELPSAM alert: a conversation was auto-flagged",
-          `The portal flagged a message for possible: ${assessment.categories.join(", ")}. Please review it on the alerts page.`
-        );
-      }
+      .eq("severity", "high");
+
+    await supabase.from("reports").insert({
+      reporter_id: user.id,
+      mentorship_id,
+      message_id: inserted?.id ?? null,
+      source: "auto",
+      severity: assessment.severity,
+      reason: assessment.reason || `Automatic flag: ${assessment.categories.join(", ")}`,
+      details: body.slice(0, 1000),
+    });
+
+    // Email only for HIGH flags, and only if this conversation didn't already
+    // have an open HIGH flag (so a run of bad messages = one email, not ten).
+    if (assessment.severity === "high" && (openHigh ?? 0) === 0) {
+      await notifyAdmins(
+        "TELPSAM alert: a conversation was auto-flagged",
+        `The portal flagged a message for possible: ${assessment.categories.join(", ")}. Please review it on the alerts page.`
+      );
     }
   }
 

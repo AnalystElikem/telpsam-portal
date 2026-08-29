@@ -19,8 +19,23 @@ export default async function AdminAlerts() {
     .select("id, mentorship_id, source, reason, severity, created_at")
     .eq("status", "open")
     .order("created_at", { ascending: false });
-  const reports = (allReports ?? []).filter((r) => r.severity !== "low");
-  const lowReports = (allReports ?? []).filter((r) => r.severity === "low");
+  // A conversation may have several auto-flags (one per offending message). Group
+  // by conversation so the list shows one card per conversation with a count,
+  // rather than a wall of near-identical rows. Rows are newest-first, so the
+  // first per conversation is the most recent flag.
+  type Rep = { id: string; mentorship_id: string | null; source: string; reason: string; severity: string; created_at: string };
+  const groupByConversation = (list: Rep[]) => {
+    const map = new Map<string, Rep & { count: number }>();
+    for (const r of list) {
+      const key = r.mentorship_id ?? r.id;
+      const g = map.get(key);
+      if (g) g.count++;
+      else map.set(key, { ...r, count: 1 });
+    }
+    return Array.from(map.values());
+  };
+  const reports = groupByConversation((allReports ?? []).filter((r) => r.severity !== "low"));
+  const lowReports = groupByConversation((allReports ?? []).filter((r) => r.severity === "low"));
 
   // Open call requests.
   const { data: calls } = await supabase
@@ -144,6 +159,11 @@ export default async function AdminAlerts() {
                   <span className="ml-2 rounded-full bg-canvas px-2 py-0.5 text-[10px] font-bold uppercase text-muted">
                     {r.source === "auto" ? "Auto" : "Report"}
                   </span>
+                  {r.count > 1 && (
+                    <span className="ml-2 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase text-danger">
+                      {r.count} flagged messages
+                    </span>
+                  )}
                   <p className="text-xs text-muted">{new Date(r.created_at).toLocaleString()}</p>
                 </div>
                 <ArrowRight className="h-4 w-4 text-navy" />
@@ -174,6 +194,7 @@ export default async function AdminAlerts() {
               >
                 <div className="text-sm">
                   <span className="text-body">{r.reason}</span>
+                  {r.count > 1 && <span className="ml-2 text-xs text-muted">· {r.count} messages</span>}
                   <p className="text-xs text-muted">{new Date(r.created_at).toLocaleString()}</p>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted" />
