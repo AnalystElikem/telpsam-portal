@@ -23,7 +23,18 @@ export default async function AdminCoordinators({
     .order("full_name");
   const all = (data as P[]) ?? [];
   const coordinators = all.filter((p) => p.role === "admin");
-  const members = all.filter((p) => p.role === "student" || p.role === "alumnus");
+
+  // Only offer members who've completed a profile, and show their status.
+  const [{ data: sp }, { data: ap }] = await Promise.all([
+    supabase.from("student_profiles").select("id, is_approved"),
+    supabase.from("alumni_profiles").select("id, is_approved"),
+  ]);
+  const status = new Map<string, string>();
+  for (const s of sp ?? []) status.set(s.id, s.is_approved ? "approved" : "pending");
+  for (const a of ap ?? []) status.set(a.id, a.is_approved ? "approved" : "pending");
+  const members = all
+    .filter((p) => (p.role === "student" || p.role === "alumnus") && status.has(p.id))
+    .map((p) => ({ ...p, status: status.get(p.id) as string }));
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -78,7 +89,7 @@ export default async function AdminCoordinators({
               <option value="" disabled>Choose a member…</option>
               {members.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.full_name || "Member"} · {m.role} · {m.email}
+                  {m.full_name || "Member"} · {m.role} · {m.status} · {m.email}
                 </option>
               ))}
             </select>

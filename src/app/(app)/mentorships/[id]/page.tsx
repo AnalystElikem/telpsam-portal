@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
 import MentorshipGuide from "@/components/MentorshipGuide";
 import ConversationThread from "@/components/ConversationThread";
-import { reportConcern, endMentorship, requestCall, submitCheckin, requestExtension } from "@/app/actions/messages";
+import CheckinPrompt from "@/components/CheckinPrompt";
+import { reportConcern, endMentorship, requestCall, requestExtension } from "@/app/actions/messages";
 
 export const metadata: Metadata = { title: "Conversation" };
 
@@ -274,33 +275,7 @@ export default async function ConversationPage({
         </div>
       )}
 
-      {checkinDue && (
-        <div className="mt-3 rounded-lg border border-teal/30 bg-teal-soft/40 p-3">
-          <p className="text-sm font-semibold text-ink">Quick check-in: how is this mentorship going?</p>
-          <p className="mt-0.5 text-xs text-body">Your answer is private. Choose “I have a concern” if anything feels off.</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {[
-              { rating: "good", label: "Going well" },
-              { rating: "okay", label: "It's okay" },
-              { rating: "concern", label: "I have a concern" },
-            ].map((o) => (
-              <form key={o.rating} action={submitCheckin}>
-                <input type="hidden" name="mentorship_id" value={id} />
-                <input type="hidden" name="rating" value={o.rating} />
-                <button
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                    o.rating === "concern"
-                      ? "border-danger/40 text-danger hover:bg-red-50"
-                      : "border-line text-body hover:bg-white"
-                  }`}
-                >
-                  {o.label}
-                </button>
-              </form>
-            ))}
-          </div>
-        </div>
-      )}
+      {checkinDue && <CheckinPrompt mentorshipId={id} />}
 
       {checkin && (
         <p className="mt-3 rounded-lg bg-green-50 p-3 text-sm text-success">

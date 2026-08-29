@@ -40,6 +40,23 @@ export default async function MentorshipsPage() {
     : { data: [] };
   const people = new Map((peopleData ?? []).map((p) => [p.id, p]));
 
+  // Unread per conversation: messages from the other person after I last looked.
+  const ids = rows.map((r) => r.id);
+  const [{ data: myReads }, { data: msgs }] = await Promise.all([
+    supabase.from("reads").select("ref_id, seen_at").eq("user_id", me.id).eq("scope", "mentorship"),
+    ids.length
+      ? supabase.from("messages").select("mentorship_id, created_at").in("mentorship_id", ids).neq("sender_id", me.id)
+      : Promise.resolve({ data: [] as { mentorship_id: string; created_at: string }[] }),
+  ]);
+  const seen = new Map((myReads ?? []).map((r) => [r.ref_id, r.seen_at]));
+  const unread = new Map<string, number>();
+  for (const m of msgs ?? []) {
+    const s = seen.get(m.mentorship_id);
+    if (!s || new Date(m.created_at).getTime() > new Date(s).getTime()) {
+      unread.set(m.mentorship_id, (unread.get(m.mentorship_id) ?? 0) + 1);
+    }
+  }
+
   const label = me.role === "alumnus" ? "mentees" : "mentors";
 
   return (
@@ -74,7 +91,14 @@ export default async function MentorshipsPage() {
                     {me.role === "alumnus" ? "Mentee" : "Mentor"} · {displayStatus(r)}
                   </p>
                 </div>
-                <MessagesSquare className="h-5 w-5 text-navy" />
+                <div className="flex items-center gap-2">
+                  {(unread.get(r.id) ?? 0) > 0 && (
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-coral px-1.5 text-[11px] font-bold text-white">
+                      {unread.get(r.id)}
+                    </span>
+                  )}
+                  <MessagesSquare className="h-5 w-5 text-navy" />
+                </div>
               </Link>
             );
           })

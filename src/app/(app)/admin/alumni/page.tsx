@@ -44,6 +44,16 @@ export default async function AdminAlumni({
   const pending = rows.filter((r) => !r.is_approved);
   const approved = rows.filter((r) => r.is_approved);
 
+  // Members who signed up as alumni but never saved/submitted a profile.
+  const submitted = new Set(((data as unknown as Row[]) ?? []).map((r) => r.id));
+  const { data: allAlumni } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .eq("role", "alumnus");
+  const incomplete = (allAlumni ?? []).filter(
+    (p) => !submitted.has(p.id) && (!needle || `${p.full_name} ${p.email}`.toLowerCase().includes(needle))
+  );
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-ink">Alumni</h1>
@@ -65,6 +75,26 @@ export default async function AdminAlumni({
           <AlumnusCard key={r.id} r={r} />
         ))}
       </Section>
+
+      {incomplete.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
+            Registered, not yet submitted ({incomplete.length})
+          </h2>
+          <p className="mt-1 text-xs text-muted">Signed up but haven&apos;t saved a profile, so there&apos;s nothing to review yet.</p>
+          <div className="mt-3 space-y-2">
+            {incomplete.map((p) => (
+              <div key={p.id} className="flex items-center justify-between rounded-lg border border-line bg-white px-4 py-3 text-sm">
+                <div>
+                  <p className="font-medium text-ink">{p.full_name || "New member"}</p>
+                  <p className="text-xs text-muted">{p.email}</p>
+                </div>
+                <span className="text-xs text-muted">Profile not completed</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <Section title="Approved" empty="No approved alumni yet.">
         {approved.map((r) => (
