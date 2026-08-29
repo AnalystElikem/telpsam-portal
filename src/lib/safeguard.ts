@@ -43,7 +43,7 @@ const MONEY_HELP =
 const MEETUP =
   /\bmeet\s*(up|me\s*(at|by|on|tomorrow|today|this|next)|at\b)|\bcome\s*(to|over|and\s*see)\b|\bmy\s*(place|house|home|hostel|room|hotel)\b|\byour\s*(place|house|hostel)\b|\bsee\s*you\s*(at|on|this|next|tomorrow|by)\b|\blink\s*up\b|\bpick\s*(you|u)\s*up\b|\bin\s*person\b/i;
 
-/** Returns the red-line categories a message triggers (empty if clean). */
+/** Returns the HIGH-confidence red-line categories a message triggers. */
 export function scanMessage(body: string): FlagCategory[] {
   const flags: FlagCategory[] = [];
   if (looksLikePhone(body)) flags.push("Possible phone number");
@@ -52,4 +52,35 @@ export function scanMessage(body: string): FlagCategory[] {
     flags.push("Possible money request");
   if (MEETUP.test(body)) flags.push("Possible meet-up arrangement");
   return flags;
+}
+
+// LOW-confidence hints: a bare mention of a sensitive topic that MIGHT be a
+// breach but is often innocent. We catch these so nothing slips through, but
+// they go to a quiet "for review" list rather than pinging coordinators.
+const LOW_HINTS: { re: RegExp; cat: FlagCategory }[] = [
+  { re: /\b(phone|call|whats\s?app|dm|inbox|number|digits|contact|handle|snap|insta|gram)\b/i, cat: "Possible contact details / off-platform" },
+  { re: /\b(money|cash|cedis?|ghs|momo|funds?|fees?|pay|paid|owe|loan|gift|sponsor|allowance|pocket)\b/i, cat: "Possible money request" },
+  { re: /\b(meet|see\s*you|come\s*(over|to)|visit|hang\s*out|link\s*up|address|location|where\s*(do|are)\s*you)\b/i, cat: "Possible meet-up arrangement" },
+  // vague grooming/secrecy signals the strict patterns won't catch
+  { re: /\b(secret|between\s*us|don'?t\s*tell|our\s*little|just\s*(the\s*)?two|special\s*(friend|bond)|trust\s*me|mature\s*for|photo|picture|pic|selfie|alone|private(ly)?)\b/i, cat: "Possible contact details / off-platform" },
+];
+
+export type Severity = "high" | "low";
+export type Assessment = { flag: boolean; severity: Severity; categories: string[]; reason: string };
+
+/**
+ * Regex assessment used as the fast pre-filter AND the fallback when the AI
+ * classifier is unavailable. HIGH = clear breach → alert. LOW = a hint worth a
+ * quiet review. Empty = clean.
+ */
+export function assessMessage(body: string): Assessment {
+  const high = scanMessage(body);
+  if (high.length > 0) {
+    return { flag: true, severity: "high", categories: high, reason: `Automatic flag: ${high.join(", ")}` };
+  }
+  const low = [...new Set(LOW_HINTS.filter((h) => h.re.test(body)).map((h) => h.cat))];
+  if (low.length > 0) {
+    return { flag: true, severity: "low", categories: low, reason: `Low-confidence hint: ${low.join(", ")}` };
+  }
+  return { flag: false, severity: "low", categories: [], reason: "" };
 }

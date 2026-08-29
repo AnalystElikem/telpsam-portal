@@ -76,6 +76,42 @@ STAGING project.
 mentorships past their 3-month period. Enable the **pg_cron** extension first
 (Supabase → Database → Extensions), then run the migration.
 
+## Safeguarding: how messages get flagged
+
+Every chat message runs through two layers before it's considered clean. The
+goal is to **catch everything without pinging coordinators for every maybe**.
+
+1. **Keyword scanner** (`src/lib/safeguard.ts`, always on, free, instant).
+   - **High-confidence** hits — a real phone number, a contact handle/social
+     app/email, a money request with an amount or "cover my fees", a concrete
+     meet-up — raise a **high** flag → coordinators are emailed and it shows
+     under *Alerts → Flagged conversations*.
+   - **Low-confidence** hints — a bare mention of "money", "meet", "phone",
+     "photo", "secret", etc. — raise a **low** flag. These do **not** email
+     anyone; they sit under *Alerts → For review · lower priority*.
+
+2. **AI classifier** (`src/lib/moderation.ts`, optional — set `OPENAI_API_KEY`).
+   When the keyword layer isn't already high-confidence, the message is read
+   **in context** by a small model (`gpt-4o-mini` by default). It catches what
+   rules miss — euphemisms, spelled-out numbers ("oh two four…"), grooming and
+   secrecy — and can also **clear a false hint** (e.g. "nice to meet you" →
+   not a breach → no flag). Its verdict overrides the keyword low/none result.
+
+Notes:
+- Without the AI key, the low-priority list is deliberately broad (it would
+  rather over-catch than miss), so it will include some innocent messages.
+  Adding the key cleans that up. Either way, **coordinators are only emailed
+  for high-confidence flags.**
+- One open auto-flag per conversation per tier — a burst of messages won't spam
+  the alerts list; a high flag can still escalate above an open low one.
+- Coordinators still only ever see the **flagged message(s)**, not the whole
+  chat (enforced in RLS, migration `018`).
+- Severity lives on `reports.severity` (migration `020`). Manual reports and
+  check-in concerns are always `high`.
+- Cost of the AI layer is roughly a hundredth of a cent per message on
+  `gpt-4o-mini`. It runs only when the keyword layer isn't already sure, and
+  fails safe (network/timeout → falls back to the keyword result).
+
 ## Security notes
 
 - Private phone numbers live in `alumni_contact` / `student_profiles`, which are

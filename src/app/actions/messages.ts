@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { scanMessage } from "@/lib/safeguard";
+import { assessMessage } from "@/lib/safeguard";
+import { classifyMessage } from "@/lib/moderation";
 import { notifyAdmins, notifyUserById } from "@/lib/email";
 import { MESSAGES_PER_MINUTE } from "@/lib/constants";
 
@@ -65,31 +66,48 @@ export async function sendMessage(formData: FormData) {
     );
   }
 
-  // Private by default: coordinators don't read chats. But if this message
-  // trips a Rule-of-Engagement red line, raise an automatic flag for review.
-  const flags = scanMessage(body);
-  if (flags.length > 0) {
-    // Don't pile up alerts: only raise a new auto-flag if this conversation
-    // doesn't already have an OPEN auto-flag awaiting review.
+  // Private by default: coordinators don't read chats. Safeguarding runs in two
+  // layers so nothing slips through while coordinators aren't drowned in noise:
+  //   1. Fast regex assessment (high = clear breach, low = a hint, none = clean).
+  //   2. If regex isn't already HIGH, an AI classifier reads it in context and
+  //      may catch euphemisms/grooming the rules miss (or clear a false hint).
+  // HIGH flags alert coordinators; LOW flags sit quietly on a "for review" list.
+  const regex = assessMessage(body);
+  let assessment = regex;
+  if (regex.severity !== "high") {
+    const ai = await classifyMessage(body);
+    if (ai) assessment = ai; // the AI is authoritative for the uncertain cases
+  }
+
+  if (assessment.flag) {
+    // Dedupe so we don't pile up alerts. A HIGH flag may still be raised even if
+    // a LOW one is open (an escalation); a LOW flag is skipped if anything auto
+    // is already open for this conversation.
+    const wanted = assessment.severity === "high" ? ["high"] : ["high", "low"];
     const { count: openAuto } = await supabase
       .from("reports")
       .select("*", { count: "exact", head: true })
       .eq("mentorship_id", mentorship_id)
       .eq("source", "auto")
-      .eq("status", "open");
+      .eq("status", "open")
+      .in("severity", wanted);
     if ((openAuto ?? 0) === 0) {
       await supabase.from("reports").insert({
         reporter_id: user.id,
         mentorship_id,
         message_id: inserted?.id ?? null,
         source: "auto",
-        reason: `Automatic flag: ${flags.join(", ")}`,
+        severity: assessment.severity,
+        reason: assessment.reason || `Automatic flag: ${assessment.categories.join(", ")}`,
         details: body.slice(0, 1000),
       });
-      await notifyAdmins(
-        "TELPSAM alert: a conversation was auto-flagged",
-        `The portal automatically flagged a message for possible: ${flags.join(", ")}. Please review it on the alerts page.`
-      );
+      // Only HIGH-confidence flags ping coordinators. Low ones wait on the list.
+      if (assessment.severity === "high") {
+        await notifyAdmins(
+          "TELPSAM alert: a conversation was auto-flagged",
+          `The portal flagged a message for possible: ${assessment.categories.join(", ")}. Please review it on the alerts page.`
+        );
+      }
     }
   }
 

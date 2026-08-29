@@ -210,11 +210,13 @@ create table if not exists public.reports (
   mentorship_id  uuid references public.mentorships(id) on delete set null,
   message_id     uuid references public.messages(id) on delete set null,
   source         text not null default 'manual' check (source in ('manual', 'auto')),
+  severity       text not null default 'high' check (severity in ('high', 'low')),
   reason         text not null,
   details        text,
   status         text not null default 'open' check (status in ('open', 'resolved')),
   created_at     timestamptz not null default now()
 );
+create index if not exists reports_open_severity_idx on public.reports (status, severity);
 
 -- =========================================================================
 -- Helper functions (defined AFTER the tables they reference).

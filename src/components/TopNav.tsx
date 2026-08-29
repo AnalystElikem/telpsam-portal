@@ -43,7 +43,7 @@ export default async function TopNav({ profile }: { profile: Profile }) {
   if (profile.role === "admin") {
     const supabase = await createClient();
     const [reports, calls, ext, students, alumni, requests, support] = await Promise.all([
-      supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "open"),
+      supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "open").neq("severity", "low"),
       supabase.from("call_requests").select("*", { count: "exact", head: true }).eq("status", "open"),
       supabase.from("extension_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("student_profiles").select("*", { count: "exact", head: true }).eq("is_approved", false),

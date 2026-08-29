@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Flag, Phone, LogOut, ArrowRight, CheckCircle2, Moon, CalendarPlus } from "lucide-react";
+import { Flag, Phone, LogOut, ArrowRight, CheckCircle2, Moon, CalendarPlus, Eye } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { markCallHandled, resolveExtension } from "@/app/actions/admin";
@@ -11,12 +11,16 @@ export default async function AdminAlerts() {
   await requireRole("admin");
   const supabase = await createClient();
 
-  // Open flags/reports.
-  const { data: reports } = await supabase
+  // Open flags/reports. High-confidence ones need attention now; low-confidence
+  // ones (broad hints the AI/regex caught but wasn't sure about) go to a quieter
+  // "for review" list so coordinators aren't pinged for every maybe.
+  const { data: allReports } = await supabase
     .from("reports")
-    .select("id, mentorship_id, source, reason, created_at")
+    .select("id, mentorship_id, source, reason, severity, created_at")
     .eq("status", "open")
     .order("created_at", { ascending: false });
+  const reports = (allReports ?? []).filter((r) => r.severity !== "low");
+  const lowReports = (allReports ?? []).filter((r) => r.severity === "low");
 
   // Open call requests.
   const { data: calls } = await supabase
@@ -105,7 +109,7 @@ export default async function AdminAlerts() {
   const name = (id: string | null) => (id ? pById.get(id)?.full_name || "Member" : "Member");
 
   const nothing =
-    (reports ?? []).length === 0 && callList.length === 0 && extensions.length === 0 &&
+    reports.length === 0 && lowReports.length === 0 && callList.length === 0 && extensions.length === 0 &&
     ended.length === 0 && dormant.length === 0;
 
   return (
@@ -122,14 +126,14 @@ export default async function AdminAlerts() {
         </p>
       )}
 
-      {/* Flags */}
-      {(reports ?? []).length > 0 && (
+      {/* High-confidence flags */}
+      {reports.length > 0 && (
         <section className="mt-8">
           <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-danger">
-            <Flag className="h-4 w-4" /> Flagged conversations ({reports!.length})
+            <Flag className="h-4 w-4" /> Flagged conversations ({reports.length})
           </h2>
           <div className="mt-3 space-y-2">
-            {reports!.map((r) => (
+            {reports.map((r) => (
               <Link
                 key={r.id}
                 href={r.mentorship_id ? `/mentorships/${r.mentorship_id}` : "/admin/reports"}
@@ -149,6 +153,33 @@ export default async function AdminAlerts() {
           <Link href="/admin/reports" className="mt-3 inline-block text-sm font-semibold text-navy hover:underline">
             Manage all reports →
           </Link>
+        </section>
+      )}
+
+      {/* Low-confidence hints — a quiet review list, not urgent. */}
+      {lowReports.length > 0 && (
+        <section className="mt-8">
+          <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted">
+            <Eye className="h-4 w-4" /> For review · lower priority ({lowReports.length})
+          </h2>
+          <p className="mt-1 text-xs text-muted">
+            Broad hints the scanner wasn&apos;t sure about. Worth a glance, but not urgent.
+          </p>
+          <div className="mt-3 space-y-2">
+            {lowReports.map((r) => (
+              <Link
+                key={r.id}
+                href={r.mentorship_id ? `/mentorships/${r.mentorship_id}` : "/admin/reports"}
+                className="flex items-center justify-between rounded-lg border border-line bg-white p-4 transition-shadow hover:shadow-md"
+              >
+                <div className="text-sm">
+                  <span className="text-body">{r.reason}</span>
+                  <p className="text-xs text-muted">{new Date(r.created_at).toLocaleString()}</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted" />
+              </Link>
+            ))}
+          </div>
         </section>
       )}
 
