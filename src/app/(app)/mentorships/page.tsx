@@ -19,9 +19,12 @@ export default async function MentorshipsPage() {
   const me = await requireProfile();
   const supabase = await createClient();
 
+  // Only conversations I'm actually part of (admins would otherwise see all via
+  // their coordinator RLS — that's what /admin/mentorships is for).
   const { data } = await supabase
     .from("mentorships")
     .select("id, mentor_id, mentee_id, status, expires_at, created_at")
+    .or(`mentor_id.eq.${me.id},mentee_id.eq.${me.id}`)
     .order("created_at", { ascending: false });
   const rows = (data as M[]) ?? [];
   const displayStatus = (r: M) =>

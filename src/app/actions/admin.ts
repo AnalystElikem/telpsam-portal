@@ -25,6 +25,19 @@ async function assertAdmin() {
   return { supabase, adminId: user.id };
 }
 
+// When someone loses their approval, stop any mentorship they're actively in.
+async function endActiveMentorshipsFor(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  personId: string,
+  adminId: string
+) {
+  await supabase
+    .from("mentorships")
+    .update({ status: "ended", ended_at: new Date().toISOString(), ended_by: adminId })
+    .or(`mentor_id.eq.${personId},mentee_id.eq.${personId}`)
+    .eq("status", "active");
+}
+
 export async function approveAlumnus(formData: FormData) {
   const { supabase, adminId } = await assertAdmin();
   const id = String(formData.get("id") || "");
@@ -40,8 +53,11 @@ export async function approveAlumnus(formData: FormData) {
       "Your TELPSAM alumni profile is approved",
       "Welcome aboard. Your alumni profile has been approved. Sign in to publish it and start mentoring students."
     );
+  } else {
+    await endActiveMentorshipsFor(supabase, id, adminId);
   }
   revalidatePath("/admin/alumni");
+  revalidatePath("/admin/mentorships");
 }
 
 export async function approveStudent(formData: FormData) {
@@ -79,8 +95,11 @@ export async function approveStudent(formData: FormData) {
       "Your TELPSAM account is approved",
       "Good news — a Program Coordinator has approved your account. Sign in to explore the alumni network and request mentorship."
     );
+  } else {
+    await endActiveMentorshipsFor(supabase, id, adminId);
   }
   revalidatePath("/admin/students");
+  revalidatePath("/admin/mentorships");
 }
 
 export async function resolveExtension(formData: FormData) {
