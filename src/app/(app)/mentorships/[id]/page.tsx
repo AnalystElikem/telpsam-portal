@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ShieldCheck, Flag, Send, Lock, Phone, LogOut } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Flag, Lock, Phone, LogOut } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
 import MentorshipGuide from "@/components/MentorshipGuide";
-import { sendMessage, reportConcern, endMentorship, requestCall, submitCheckin, requestExtension } from "@/app/actions/messages";
+import ConversationThread from "@/components/ConversationThread";
+import { reportConcern, endMentorship, requestCall, submitCheckin, requestExtension } from "@/app/actions/messages";
 
 export const metadata: Metadata = { title: "Conversation" };
 
 type Msg = { id: string; sender_id: string; body: string; created_at: string };
-type FlagRow = { id: string; source: string; reason: string; status: string; created_at: string };
+type FlagRow = { id: string; source: string; reason: string; status: string; created_at: string; message_id: string | null };
 
 export default async function ConversationPage({
   params,
@@ -64,9 +65,10 @@ export default async function ConversationPage({
     mentorship.mentor_id === me.id ? mentorship.mentee_id : mentorship.mentor_id;
   const { data: peopleData } = await supabase
     .from("member_cards")
-    .select("id, full_name")
+    .select("id, full_name, avatar_url")
     .in("id", [mentorship.mentor_id, mentorship.mentee_id]);
-  const names = new Map((peopleData ?? []).map((p) => [p.id, p.full_name]));
+  const people = (peopleData ?? []) as { id: string; full_name: string; avatar_url: string | null }[];
+  const names = new Map(people.map((p) => [p.id, p.full_name]));
   const otherName = names.get(otherId) || "Member";
   const menteeName = names.get(mentorship.mentee_id) || "Student";
   const mentorName = names.get(mentorship.mentor_id) || "Alumnus";
@@ -75,13 +77,12 @@ export default async function ConversationPage({
   if (isCoordinatorView) {
     const { data: reportData } = await supabase
       .from("reports")
-      .select("id, source, reason, status, created_at")
+      .select("id, source, reason, status, created_at, message_id")
       .eq("mentorship_id", id)
       .order("created_at", { ascending: false });
     flags = (reportData as FlagRow[]) ?? [];
   }
   const isFlagged = flags.length > 0;
-  const canSeeThread = isParticipant || (isCoordinatorView && isFlagged);
 
   // Mark this conversation read for the participant (drives the unread badge).
   if (isParticipant) {
@@ -109,16 +110,38 @@ export default async function ConversationPage({
     }
   }
 
-  const { data: msgData } = canSeeThread
+  // Participants see the full thread. Coordinators see ONLY the flagged
+  // message(s) a report points at, never the rest of the private conversation.
+  const flaggedMsgIds = flags.map((f) => f.message_id).filter((x): x is string => !!x);
+  const { data: msgData } = isParticipant
     ? await supabase
         .from("messages")
         .select("id, sender_id, body, created_at")
         .eq("mentorship_id", id)
         .order("created_at", { ascending: true })
-    : { data: [] };
+    : isCoordinatorView && flaggedMsgIds.length
+      ? await supabase
+          .from("messages")
+          .select("id, sender_id, body, created_at")
+          .in("id", flaggedMsgIds)
+          .order("created_at", { ascending: true })
+      : { data: [] };
   const messages = (msgData as Msg[]) ?? [];
 
-  const canPost = !isEnded && (isParticipant || (isCoordinatorView && isFlagged));
+  // Coordinators can review a flagged chat but not post into it.
+  const canPost = !isEnded && isParticipant;
+
+  // Read receipt: when did the other participant last open this conversation?
+  const { data: otherRead } = isParticipant
+    ? await supabase
+        .from("reads")
+        .select("seen_at")
+        .eq("user_id", otherId)
+        .eq("scope", "mentorship")
+        .eq("ref_id", id)
+        .maybeSingle()
+    : { data: null };
+  const otherSeenAt = otherRead?.seen_at ?? null;
 
   // Periodic check-in: ask a participant how it's going if they haven't in ~14 days.
   let checkinDue = false;
@@ -158,6 +181,11 @@ export default async function ConversationPage({
               : `${mentorship.mentor_id === me.id ? "Your mentee" : "Your mentor"} · ${mentorship.status}`}
           </p>
         </div>
+        {isParticipant && (
+          <Link href={`/mentorships/${id}/partner`} className="shrink-0 text-sm font-semibold text-navy hover:underline">
+            View profile
+          </Link>
+        )}
       </div>
 
       {isEnded && (
@@ -312,64 +340,43 @@ export default async function ConversationPage({
             someone files a report.
           </p>
         </div>
+      ) : isCoordinatorView ? (
+        <div className="card mt-4 space-y-3 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+            Flagged message{messages.length === 1 ? "" : "s"} only
+          </p>
+          {messages.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted">
+              No specific message is attached to this flag — see the reason above.
+            </p>
+          ) : (
+            messages.map((m) => (
+              <div key={m.id} className="rounded-lg border border-coral/30 bg-coral/5 p-3">
+                <p className="text-xs font-semibold text-ink">
+                  {names.get(m.sender_id) || "Member"}{" "}
+                  <span className="font-normal text-muted">· {new Date(m.created_at).toLocaleString()}</span>
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{m.body}</p>
+              </div>
+            ))
+          )}
+          <p className="flex items-center gap-1.5 text-[11px] text-muted">
+            <Lock className="h-3 w-3" /> For privacy, only the flagged message is shown — not the rest of the conversation. To reach a member, use the support channel.
+          </p>
+        </div>
       ) : (
         <>
           {isParticipant && !isEnded && <MentorshipGuide open={messages.length === 0} />}
 
-          {/* Thread */}
-          <div className="card mt-4 space-y-3 p-4">
-            {messages.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted">
-                No messages yet. Say hello and introduce yourself.
-              </p>
-            ) : (
-              messages.map((m) => {
-                const mine = m.sender_id === me.id;
-                const fromOffice = !names.has(m.sender_id);
-                return (
-                  <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                        mine
-                          ? "bg-navy text-white"
-                          : fromOffice
-                            ? "bg-gold-soft text-ink"
-                            : "bg-canvas text-ink"
-                      }`}
-                    >
-                      {fromOffice && <p className="mb-0.5 text-[11px] font-bold text-gold-600">TELPSAM Program Coordinators</p>}
-                      <p className="whitespace-pre-wrap">{m.body}</p>
-                      <p className={`mt-1 text-[10px] ${mine ? "text-white/60" : "text-muted"}`}>
-                        {new Date(m.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Send */}
-          {canPost && (
-            <form action={sendMessage} className="mt-3 flex items-end gap-2">
-              <input type="hidden" name="mentorship_id" value={id} />
-              <textarea
-                name="body"
-                rows={2}
-                required
-                className="field flex-1"
-                placeholder={isCoordinatorView ? "Write as the Program Coordinators…" : "Write a message…"}
-              />
-              <button className="btn btn-primary !px-4" title="Send">
-                <Send className="h-4 w-4" />
-              </button>
-            </form>
-          )}
-          {canPost && (
-            <p className="mt-1.5 text-[11px] text-muted">
-              Please keep messages at a natural pace, very rapid bursts are limited to keep the space healthy.
-            </p>
-          )}
+          <ConversationThread
+            mentorshipId={id}
+            meId={me.id}
+            people={people}
+            initialMessages={messages}
+            canPost={canPost}
+            otherId={isParticipant ? otherId : null}
+            otherSeenAt={otherSeenAt}
+          />
         </>
       )}
 

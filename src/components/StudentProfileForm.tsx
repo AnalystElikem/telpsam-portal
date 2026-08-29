@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import Image from "next/image";
+import { ShieldCheck, UserRound, Upload } from "lucide-react";
 import { saveStudentProfile } from "@/app/actions/student";
+import { uploadAvatar } from "@/app/actions/avatar";
+import { downscaleImage } from "@/lib/image";
 import BranchSelect from "@/components/BranchSelect";
 import PhoneInput from "@/components/PhoneInput";
 
@@ -16,6 +19,7 @@ export type StudentInitial = {
   church_branch: string;
   parent_name: string;
   parent_contact: string;
+  avatar_url: string;
 };
 
 const LEVELS = ["SHS 3", "Completed SHS", "Tertiary"];
@@ -52,15 +56,66 @@ export default function StudentProfileForm({
   const [klass, setKlass] = useState(initial.class_level);
   const options = classOptions(level);
 
+  const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
   function onLevelChange(next: string) {
     setLevel(next);
     // Reset the class if it no longer fits the new level.
     if (!classOptions(next).includes(klass)) setKlass("");
   }
 
+  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError("");
+    setUploading(true);
+    try {
+      let blob: Blob = file;
+      try {
+        blob = await downscaleImage(file, 800, 0.82);
+      } catch {
+        /* send original if we can't process it */
+      }
+      const fd = new FormData();
+      fd.append("file", blob, "avatar.jpg");
+      const res = await uploadAvatar(fd);
+      if (res.error) throw new Error(res.error);
+      if (res.url) setAvatarUrl(res.url);
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+      setUploadError("Couldn't upload that image. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <form action={saveStudentProfile} className="space-y-6">
       <input type="hidden" name="return_to" value={returnTo} />
+      <input type="hidden" name="avatar_url" value={avatarUrl} />
+
+      <div className="flex items-center gap-5">
+        <div className="relative h-20 w-20 overflow-hidden rounded-full border border-line bg-canvas">
+          {avatarUrl ? (
+            <Image src={avatarUrl} alt="" fill className="object-cover" sizes="80px" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-muted">
+              <UserRound className="h-9 w-9" />
+            </div>
+          )}
+        </div>
+        <div>
+          <label className="btn btn-outline cursor-pointer">
+            <Upload className="h-4 w-4" />
+            {uploading ? "Uploading…" : "Upload photo"}
+            <input type="file" accept="image/*,.heic,.heif" className="hidden" onChange={handlePhoto} disabled={uploading} />
+          </label>
+          {uploadError && <p className="mt-1 text-xs text-danger">{uploadError}</p>}
+          <p className="mt-1 text-xs text-muted">A clear headshot helps your mentor recognise you.</p>
+        </div>
+      </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>

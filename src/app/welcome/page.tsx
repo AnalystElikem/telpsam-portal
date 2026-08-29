@@ -37,6 +37,7 @@ export default async function WelcomePage({
     church_branch: sp?.church_branch || "",
     parent_name: sp?.parent_name || "",
     parent_contact: sp?.parent_contact || "",
+    avatar_url: profile.avatar_url || "",
   };
 
   return (

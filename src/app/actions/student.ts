@@ -23,6 +23,7 @@ export async function saveStudentProfile(formData: FormData) {
   const church_branch = String(formData.get("church_branch") || "").trim();
   const parent_name = String(formData.get("parent_name") || "").trim();
   const parent_contact = String(formData.get("parent_contact") || "").trim();
+  const avatar_url = String(formData.get("avatar_url") || "").trim() || null;
   const returnTo = String(formData.get("return_to") || "/welcome");
 
   // Every field is required. Defence-in-depth behind the client-side validation.
@@ -36,7 +37,7 @@ export async function saveStudentProfile(formData: FormData) {
     redirect(`${returnTo}?error=${encodeURIComponent("Please complete every field with valid details.")}`);
   }
 
-  await supabase.from("profiles").update({ full_name }).eq("id", user.id);
+  await supabase.from("profiles").update({ full_name, avatar_url }).eq("id", user.id);
 
   await supabase.from("student_profiles").upsert({
     id: user.id,

@@ -69,18 +69,28 @@ export async function sendMessage(formData: FormData) {
   // trips a Rule-of-Engagement red line, raise an automatic flag for review.
   const flags = scanMessage(body);
   if (flags.length > 0) {
-    await supabase.from("reports").insert({
-      reporter_id: user.id,
-      mentorship_id,
-      message_id: inserted?.id ?? null,
-      source: "auto",
-      reason: `Automatic flag: ${flags.join(", ")}`,
-      details: body.slice(0, 1000),
-    });
-    await notifyAdmins(
-      "TELPSAM alert: a conversation was auto-flagged",
-      `The portal automatically flagged a message for possible: ${flags.join(", ")}. Please review it on the alerts page.`
-    );
+    // Don't pile up alerts: only raise a new auto-flag if this conversation
+    // doesn't already have an OPEN auto-flag awaiting review.
+    const { count: openAuto } = await supabase
+      .from("reports")
+      .select("*", { count: "exact", head: true })
+      .eq("mentorship_id", mentorship_id)
+      .eq("source", "auto")
+      .eq("status", "open");
+    if ((openAuto ?? 0) === 0) {
+      await supabase.from("reports").insert({
+        reporter_id: user.id,
+        mentorship_id,
+        message_id: inserted?.id ?? null,
+        source: "auto",
+        reason: `Automatic flag: ${flags.join(", ")}`,
+        details: body.slice(0, 1000),
+      });
+      await notifyAdmins(
+        "TELPSAM alert: a conversation was auto-flagged",
+        `The portal automatically flagged a message for possible: ${flags.join(", ")}. Please review it on the alerts page.`
+      );
+    }
   }
 
   revalidatePath(`/mentorships/${mentorship_id}`);

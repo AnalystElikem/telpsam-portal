@@ -343,10 +343,13 @@ create policy "participants send messages" on public.messages for insert
   with check (sender_id = auth.uid() and public.in_mentorship(mentorship_id));
 -- Conversations are private. Coordinators may read a thread ONLY once it has
 -- been flagged (auto-flag or a manual report), and may reply only then.
+-- Coordinators may read ONLY the specific message(s) a report/flag references,
+-- never the whole private conversation. They cannot post into it.
 create policy "admin read flagged messages" on public.messages for select
-  using (public.is_admin() and public.has_flag(mentorship_id));
-create policy "admin send in flagged" on public.messages for insert
-  with check (public.is_admin() and sender_id = auth.uid() and public.has_flag(mentorship_id));
+  using (
+    public.is_admin()
+    and exists (select 1 from public.reports r where r.message_id = messages.id)
+  );
 
 -- member_cards: safe, scoped name/avatar view (no email). Members read this
 -- instead of the profiles table for other people's names.
@@ -376,6 +379,31 @@ from public.support_messages
 where member_id = auth.uid();
 
 grant select on public.my_support_thread to authenticated;
+
+-- Partner profile cards: a matched mentor/mentee can view each other's profile.
+create or replace view public.mentee_cards as
+select sp.id, sp.gender, sp.school, sp.education_level, sp.class_level, sp.church_branch
+from public.student_profiles sp
+where sp.id = auth.uid()
+   or public.is_admin()
+   or exists (
+     select 1 from public.mentorships m
+     where m.mentee_id = sp.id and (m.mentor_id = auth.uid() or m.mentee_id = auth.uid())
+   );
+grant select on public.mentee_cards to authenticated;
+
+create or replace view public.alumnus_cards as
+select ap.id, ap.title, ap.gender, ap.grad_year, ap.qualifications, ap.job_title,
+       ap.organization, ap.industry, ap.interests, ap.bio, ap.church_branch
+from public.alumni_profiles ap
+where (ap.is_approved and ap.is_published)
+   or ap.id = auth.uid()
+   or public.is_admin()
+   or exists (
+     select 1 from public.mentorships m
+     where m.mentor_id = ap.id and (m.mentor_id = auth.uid() or m.mentee_id = auth.uid())
+   );
+grant select on public.alumnus_cards to authenticated;
 
 -- alumni_contact (private phone) -----------------------------------------
 create policy "own alumni contact read"   on public.alumni_contact for select using (id = auth.uid());
@@ -409,6 +437,8 @@ create policy "admin checkins all" on public.checkins for all using (public.is_a
 -- reads ------------------------------------------------------------------
 create policy "own reads all" on public.reads for all
   using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "participant read mentorship reads" on public.reads for select
+  using (scope = 'mentorship' and public.in_mentorship(ref_id));
 
 -- extension_requests -----------------------------------------------------
 create policy "participant create extension" on public.extension_requests for insert
