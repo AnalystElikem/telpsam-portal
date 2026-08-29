@@ -39,6 +39,12 @@ export default async function ConversationPage({
   const isCoordinatorView = me.role === "admin" && !isParticipant;
   if (!isParticipant && !isCoordinatorView) notFound();
 
+  // A coordinator who is ALSO a participant of this very pairing (e.g. testing
+  // with one account, or an alumnus who both mentors and coordinates). They see
+  // the full chat because it's their own conversation — flag that clearly so the
+  // view mode is never ambiguous when the two roles overlap.
+  const isAdminParticipant = me.role === "admin" && isParticipant;
+
   const expiresAt = mentorship.expires_at ? new Date(mentorship.expires_at) : null;
   const isExpired = expiresAt ? expiresAt.getTime() < Date.now() : false;
   const isEnded = mentorship.status === "ended" || isExpired;
@@ -188,6 +194,19 @@ export default async function ConversationPage({
           </Link>
         )}
       </div>
+
+      {isAdminParticipant && (
+        <p className="mt-3 rounded-lg border border-navy/20 bg-navy/5 px-3 py-2 text-xs text-body">
+          You&apos;re a coordinator, but you&apos;re viewing this as a{" "}
+          <span className="font-semibold">
+            {mentorship.mentor_id === me.id ? "participant (the mentor here)" : "participant (the mentee here)"}
+          </span>{" "}
+          — so you see the whole conversation, because it&apos;s your own chat. When a
+          coordinator opens a conversation they are <span className="font-semibold">not</span> part of, they
+          see only the flagged message and can&apos;t post. To reach a member as a coordinator, use the support
+          channel.
+        </p>
+      )}
 
       {isEnded && (
         <p className="mt-3 rounded-lg border border-line bg-canvas px-3 py-2 text-xs text-body">
