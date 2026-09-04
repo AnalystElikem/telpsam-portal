@@ -1,10 +1,11 @@
 "use client";
 
-import { useOptimistic, useRef } from "react";
+import { useOptimistic, useRef, useState, useEffect, useMemo } from "react";
 import { useFormStatus } from "react-dom";
 import Image from "next/image";
 import { Send, UserRound } from "lucide-react";
 import { sendMessage } from "@/app/actions/messages";
+import { createClient } from "@/lib/supabase/client";
 
 type Person = { id: string; full_name: string; avatar_url: string | null };
 type Msg = { id: string; sender_id: string; body: string; created_at: string; pending?: boolean };
@@ -49,8 +50,55 @@ export default function ConversationThread({
   otherSeenAt: string | null;
 }) {
   const byId = new Map(people.map((p) => [p.id, p]));
+
+  // Realtime: the OTHER participant's new messages, streamed in live so they
+  // appear without a refresh. My own messages are handled by the optimistic
+  // update + revalidate, so we ignore my own inserts here to avoid a flicker.
+  // Only participants subscribe (they have `otherId`); this respects RLS, and if
+  // realtime is ever unavailable it fails silently — the chat still works on
+  // refresh exactly as before.
+  const [live, setLive] = useState<Msg[]>([]);
+  useEffect(() => {
+    if (!otherId) return;
+    let channel: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
+    try {
+      const supabase = createClient();
+      channel = supabase
+        .channel(`msgs-${mentorshipId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "messages", filter: `mentorship_id=eq.${mentorshipId}` },
+          (payload: { new: Msg }) => {
+            const m = payload.new;
+            if (!m?.id || m.sender_id === meId) return;
+            setLive((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+          }
+        )
+        .subscribe();
+    } catch {
+      /* realtime unavailable — silent fallback to refresh-to-see */
+    }
+    return () => {
+      try {
+        channel?.unsubscribe();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [mentorshipId, otherId, meId]);
+
+  // Base = server messages + live inserts, deduped by id and time-ordered.
+  const baseMessages = useMemo(() => {
+    const map = new Map<string, Msg>();
+    for (const m of initialMessages) map.set(m.id, m);
+    for (const m of live) if (!map.has(m.id)) map.set(m.id, m);
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+  }, [initialMessages, live]);
+
   const [messages, addOptimistic] = useOptimistic<Msg[], string>(
-    initialMessages,
+    baseMessages,
     (state, body) => [
       ...state,
       { id: `temp-${Date.now()}`, sender_id: meId, body, created_at: new Date().toISOString(), pending: true },

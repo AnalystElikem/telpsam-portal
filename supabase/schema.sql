@@ -586,6 +586,15 @@ as $$
    where status <> 'ended' and expires_at is not null and expires_at < now();
 $$;
 
+-- Realtime: live chat updates without a page refresh (respects RLS).
+do $$
+begin
+  alter publication supabase_realtime add table public.messages;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end $$;
+
 -- ============================================================================
 -- After running this, make yourself the admin:
 --   update public.profiles set role = 'admin' where email = 'you@example.com';
