@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assessMessage } from "@/lib/safeguard";
 import { classifyMessage } from "@/lib/moderation";
-import { notifyAdmins, notifyUserById } from "@/lib/email";
+import { notifyAdmins } from "@/lib/email";
 import { MESSAGES_PER_MINUTE } from "@/lib/constants";
 
 export async function sendMessage(formData: FormData) {
@@ -52,33 +52,17 @@ export async function sendMessage(formData: FormData) {
 
   revalidatePath(`/mentorships/${mentorship_id}`);
 
-  // DEFERRED: safeguarding scan, flag recording, and notifications run AFTER the
-  // response is sent (Next's `after`), so they never delay the user's message.
-  // Uses the service-role client because the request/cookie context is gone by
-  // the time this runs.
-  const recipientId = m.mentor_id === user.id ? m.mentee_id : m.mentor_id;
+  // DEFERRED: safeguarding scan and flag recording run AFTER the response is
+  // sent (Next's `after`), so they never delay the user's message. Uses the
+  // service-role client because the request/cookie context is gone by then.
+  // NOTE: we deliberately do NOT email on each message — new-message reminders
+  // are batched into a twice-daily digest (see /api/cron/unread-reminders) so
+  // an active back-and-forth doesn't flood anyone's inbox.
   const messageId = inserted?.id ?? null;
   after(async () => {
     try {
       if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
       const admin = createAdminClient();
-
-      // Debounce new-message emails: one email per 30-min burst per sender.
-      const since = new Date(Date.now() - 30 * 60_000).toISOString();
-      const { count: recentBySender } = await admin
-        .from("messages")
-        .select("*", { count: "exact", head: true })
-        .eq("mentorship_id", mentorship_id)
-        .eq("sender_id", user.id)
-        .gte("created_at", since);
-      // The just-inserted message is included, so "first in 30 min" == count 1.
-      if ((recentBySender ?? 1) <= 1) {
-        await notifyUserById(
-          recipientId,
-          "New message in your TELPSAM mentorship",
-          "You have a new message in your mentorship conversation. Sign in to read and reply."
-        );
-      }
 
       // Two-layer safeguarding: fast regex, then AI for the uncertain cases.
       const regex = assessMessage(body);

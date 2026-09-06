@@ -76,6 +76,35 @@ STAGING project.
 mentorships past their 3-month period. Enable the **pg_cron** extension first
 (Supabase → Database → Extensions), then run the migration.
 
+### Unread-message reminders (twice daily, 7am & 7pm)
+
+Members are **not** emailed on every message. Instead, `/api/cron/unread-reminders`
+sends one warm digest to anyone who has unread messages in an active mentorship.
+It's protected by `CRON_SECRET` (the scheduler must send
+`Authorization: Bearer <CRON_SECRET>`). Set that env var in Vercel first.
+
+**Scheduled via Supabase pg_cron** (chosen because it has no plan limit, unlike
+Vercel Cron which needs the Pro plan for twice-daily). `vercel.json` intentionally
+has **no** cron block. Times are UTC, which equals Ghana local. Enable the
+**pg_cron** and **pg_net** extensions (Supabase → Database → Extensions), then run
+once in the SQL editor, replacing the secret with your real `CRON_SECRET`:
+
+   ```sql
+   select cron.schedule('unread-reminders-am', '0 7 * * *', $$
+     select net.http_post(
+       url := 'https://mentorship.telpsam.com/api/cron/unread-reminders',
+       headers := jsonb_build_object('Authorization', 'Bearer YOUR_CRON_SECRET')
+     ); $$);
+   select cron.schedule('unread-reminders-pm', '0 19 * * *', $$
+     select net.http_post(
+       url := 'https://mentorship.telpsam.com/api/cron/unread-reminders',
+       headers := jsonb_build_object('Authorization', 'Bearer YOUR_CRON_SECRET')
+     ); $$);
+   ```
+
+To change the schedule later, `cron.unschedule('unread-reminders-am')` first,
+then re-schedule. To pause reminders entirely, unschedule both jobs.
+
 ## Safeguarding: how messages get flagged
 
 Every chat message runs through two layers before it's considered clean. The
