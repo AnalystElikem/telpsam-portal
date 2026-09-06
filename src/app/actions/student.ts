@@ -63,8 +63,9 @@ export async function saveStudentProfile(formData: FormData) {
   if (data?.is_approved) redirect("/profile?saved=1");
 
   await notifyAdmins(
-    "TELPSAM alert: a student is awaiting approval",
-    `${full_name || "A student"} submitted their profile and is waiting to be approved. Review them on the Students page.`
+    "A student is awaiting approval",
+    `${full_name || "A student"} has submitted their student profile and is waiting for approval. Please review them, confirm guardian consent, and approve so they can join the network.`,
+    { text: "Review students", path: "/admin/students" }
   );
   redirect("/pending");
 }

@@ -51,7 +51,8 @@ export async function approveAlumnus(formData: FormData) {
     await notifyUserById(
       id,
       "Your TELPSAM alumni profile is approved",
-      "Welcome aboard. Your alumni profile has been approved. Sign in to publish it and start mentoring students."
+      "Welcome aboard, and thank you for stepping forward to give back. Your alumni profile has been approved by the coordinators. You can now publish it and begin mentoring students who are walking the path you have already travelled. Your experience and encouragement will mean a great deal to them.",
+      { text: "Set up your profile", path: "/profile" }
     );
   } else {
     await endActiveMentorshipsFor(supabase, id, adminId);
@@ -93,7 +94,8 @@ export async function approveStudent(formData: FormData) {
     await notifyUserById(
       id,
       "Your TELPSAM account is approved",
-      "Good news — a Program Coordinator has approved your account. Sign in to explore the alumni network and request mentorship."
+      "Good news, and welcome to TELPSAM. A coordinator has reviewed and approved your account. You can now explore the alumni network and request a mentor to walk with you. We are glad to have you with us, and we look forward to seeing you grow.",
+      { text: "Explore the network", path: "/dashboard" }
     );
   } else {
     await endActiveMentorshipsFor(supabase, id, adminId);
@@ -149,11 +151,12 @@ export async function resolveExtension(formData: FormData) {
       ? "Your TELPSAM mentorship was extended"
       : "Update on your TELPSAM mentorship extension";
     const body = approve
-      ? "Your mentorship has been extended by 2 weeks. Sign in to continue the conversation."
-      : "Your extension request wasn't approved this time. Thank you for taking part, we encourage the relationship to continue through your branch or chapter.";
+      ? "Good news. Your mentorship has been extended by two weeks, so there is more time to keep the conversation going. Please make the most of it."
+      : "Thank you for taking part in this mentorship. Your extension request was not approved this time, but we warmly encourage the relationship to continue through your branch or chapter.";
+    const cta = { text: "Open your mentorship", path: "/mentorships" };
     await Promise.all([
-      notifyUserById(m.mentee_id, subject, body),
-      notifyUserById(m.mentor_id, subject, body),
+      notifyUserById(m.mentee_id, subject, body, cta),
+      notifyUserById(m.mentor_id, subject, body, cta),
     ]);
   }
 
@@ -208,9 +211,20 @@ export async function assignMentorship(formData: FormData) {
   });
 
   // Tell both people they've been matched (no private content).
+  const matchCta = { text: "Open the conversation", path: "/mentorships" };
   await Promise.all([
-    notifyUserById(mentee_id, "You've been matched with a TELPSAM mentor", "Good news — the Program Coordinators have matched you with a mentor. Sign in to start the conversation."),
-    notifyUserById(mentor_id, "You've been matched with a TELPSAM mentee", "The Program Coordinators have matched you with a mentee. Sign in to say hello and get started."),
+    notifyUserById(
+      mentee_id,
+      "You've been matched with a TELPSAM mentor",
+      "Wonderful news. The coordinators have matched you with a mentor who is ready to walk with you. Take the first step and say hello. A short, friendly introduction is a lovely way to begin.",
+      matchCta
+    ),
+    notifyUserById(
+      mentor_id,
+      "You've been matched with a TELPSAM mentee",
+      "The coordinators have matched you with a mentee, and they will be looking forward to hearing from you. A warm hello goes a long way in these early days. Thank you for giving your time to mentor.",
+      matchCta
+    ),
   ]);
 
   revalidatePath("/admin/requests");

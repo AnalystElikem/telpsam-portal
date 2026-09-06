@@ -21,18 +21,6 @@ async function dispatch(to: string[], subject: string, html: string, text: strin
   }
 }
 
-// Simple one-line alert (used for coordinator alerts). Keeps a plain look.
-async function sendEmail(to: string[], subject: string, message: string): Promise<void> {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
-  const link = appUrl ? `${appUrl}/login` : "";
-  const html =
-    `<p>${escapeHtml(message)}</p>` +
-    (link ? `<p><a href="${link}">Sign in to the TELPSAM Portal</a></p>` : "") +
-    `<p style="color:#888;font-size:12px">TELPSAM Portal. For your privacy, we never include message content in emails.</p>`;
-  const text = message + (link ? `\n\n${link}` : "");
-  await dispatch(to, subject, html, text);
-}
-
 // Warm, branded member email: salutation, body paragraphs, a call-to-action
 // button, and a sign-off from the coordinators. Used for reminders and other
 // member-facing notes where tone matters.
@@ -70,27 +58,54 @@ export async function sendTemplatedEmail(
   await dispatch(to, subject, html, text);
 }
 
-// Alert every coordinator (admin). Needs the service-role key to read admin
-// emails past RLS; skips quietly if it isn't set.
-export async function notifyAdmins(subject: string, message: string): Promise<void> {
+const firstName = (full?: string | null) => (full || "").trim().split(/\s+/)[0] || null;
+
+// Alert every coordinator (admin). Uses the warm template with a link to the
+// coordinator area. Needs the service-role key to read admin emails past RLS;
+// skips quietly if it isn't set. `message` may be one or more paragraphs (split
+// on blank lines).
+export async function notifyAdmins(
+  subject: string,
+  message: string,
+  cta?: { text: string; path: string }
+): Promise<void> {
   try {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
     const admin = createAdminClient();
     const { data } = await admin.from("profiles").select("email").eq("role", "admin");
-    await sendEmail((data ?? []).map((r) => r.email), subject, message);
+    const emails = (data ?? []).map((r) => r.email).filter((e): e is string => !!e);
+    if (emails.length === 0) return;
+    await sendTemplatedEmail(emails, subject, {
+      greetingName: "Coordinator",
+      paragraphs: message.split(/\n\n+/),
+      ctaText: cta?.text ?? "Open the coordinator dashboard",
+      ctaPath: cta?.path ?? "/admin/alerts",
+    });
   } catch {
     /* best effort */
   }
 }
 
-// Email a single member (by user id), looking up their address with the
-// service-role client so we never rely on exposing emails through RLS.
-export async function notifyUserById(userId: string, subject: string, message: string): Promise<void> {
+// Email a single member (by user id) with the warm template, greeting them by
+// first name. Looks up their address with the service-role client so we never
+// rely on exposing emails through RLS.
+export async function notifyUserById(
+  userId: string,
+  subject: string,
+  message: string,
+  cta?: { text: string; path: string }
+): Promise<void> {
   try {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
     const admin = createAdminClient();
-    const { data } = await admin.from("profiles").select("email").eq("id", userId).maybeSingle();
-    if (data?.email) await sendEmail([data.email], subject, message);
+    const { data } = await admin.from("profiles").select("full_name, email").eq("id", userId).maybeSingle();
+    if (!data?.email) return;
+    await sendTemplatedEmail([data.email], subject, {
+      greetingName: firstName(data.full_name),
+      paragraphs: message.split(/\n\n+/),
+      ctaText: cta?.text ?? "Open the TELPSAM portal",
+      ctaPath: cta?.path ?? "/login",
+    });
   } catch {
     /* best effort */
   }

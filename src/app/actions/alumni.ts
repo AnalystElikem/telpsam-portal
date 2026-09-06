@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { notifyAdmins } from "@/lib/email";
 
 export async function saveAlumniProfile(formData: FormData) {
   const supabase = await createClient();
@@ -79,6 +80,20 @@ export async function saveAlumniProfile(formData: FormData) {
     phone,
     updated_at: new Date().toISOString(),
   });
+
+  // If this alumnus isn't approved yet, let the coordinators know one is waiting.
+  const { data: ap } = await supabase
+    .from("alumni_profiles")
+    .select("is_approved")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!ap?.is_approved) {
+    await notifyAdmins(
+      "An alumnus is awaiting approval",
+      `${full_name || "An alumnus"} has submitted their alumni profile and is waiting for approval. Please review and approve them so they can start mentoring.`,
+      { text: "Review alumni", path: "/admin/alumni" }
+    );
+  }
 
   revalidatePath("/profile");
   redirect("/profile?saved=1");
