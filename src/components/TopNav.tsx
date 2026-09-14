@@ -11,10 +11,11 @@ const LINKS: Record<Profile["role"], { href: string; label: string }[]> = {
     { href: "/profile", label: "My Profile" },
   ],
   alumnus: [
-    { href: "/profile", label: "My Profile" },
-    { href: "/mentorships", label: "My Mentees" },
     { href: "/directory", label: "Directory" },
+    { href: "/requests", label: "My Requests" },
+    { href: "/mentorships", label: "My Mentorship" },
     { href: "/support", label: "Contact Coordinators" },
+    { href: "/profile", label: "My Profile" },
   ],
   admin: [
     { href: "/admin", label: "Dashboard" },
@@ -100,7 +101,12 @@ export default async function TopNav({ profile }: { profile: Profile }) {
       if (!s || new Date(supLatest.data.created_at).getTime() > new Date(s).getTime()) supportUnread = 1;
     }
 
-    badges = { "/mentorships": unreadConvos, "/support": supportUnread };
+    // Pending invitations to mentor also surface on the mentorship tab.
+    const { count: pendingProposals } = await supabase
+      .from("my_proposals")
+      .select("*", { count: "exact", head: true });
+
+    badges = { "/mentorships": unreadConvos + (pendingProposals ?? 0), "/support": supportUnread };
   }
 
   return (

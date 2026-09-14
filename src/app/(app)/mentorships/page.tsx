@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MessagesSquare } from "lucide-react";
+import { MessagesSquare, Inbox, Check, X, CheckCircle2, AlertCircle } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { respondToProposal } from "@/app/actions/proposals";
 
 export const metadata: Metadata = { title: "My Mentorship" };
 
@@ -14,13 +15,30 @@ type M = {
   expires_at: string | null;
   created_at: string;
 };
+type Proposal = {
+  id: string;
+  mentee_name: string | null;
+  mentee_role: string | null;
+  request_kind: string | null;
+  request_message: string | null;
+};
 
-export default async function MentorshipsPage() {
+export default async function MentorshipsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ accepted?: string; declined?: string; error?: string }>;
+}) {
   const me = await requireProfile();
+  const { accepted, declined, error } = await searchParams;
   const supabase = await createClient();
 
-  // Only conversations I'm actually part of (admins would otherwise see all via
-  // their coordinator RLS — that's what /admin/mentorships is for).
+  // Pending invitations for me as a proposed mentor.
+  const { data: propData } = await supabase
+    .from("my_proposals")
+    .select("id, mentee_name, mentee_role, request_kind, request_message")
+    .order("created_at", { ascending: true });
+  const proposals = (propData as Proposal[]) ?? [];
+
   const { data } = await supabase
     .from("mentorships")
     .select("id, mentor_id, mentee_id, status, expires_at, created_at")
@@ -40,7 +58,7 @@ export default async function MentorshipsPage() {
     : { data: [] };
   const people = new Map((peopleData ?? []).map((p) => [p.id, p]));
 
-  // Unread per conversation: messages from the other person after I last looked.
+  // Unread per conversation.
   const ids = rows.map((r) => r.id);
   const [{ data: myReads }, { data: msgs }] = await Promise.all([
     supabase.from("reads").select("ref_id, seen_at").eq("user_id", me.id).eq("scope", "mentorship"),
@@ -57,38 +75,87 @@ export default async function MentorshipsPage() {
     }
   }
 
-  const label = me.role === "alumnus" ? "mentees" : "mentors";
-
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold text-ink">My mentorship</h1>
-      <p className="mt-1 text-body">
-        Conversations with your {label}. Everything stays inside the portal.
-      </p>
+      <p className="mt-1 text-body">Your mentorship conversations. Everything stays inside the portal.</p>
+
+      {accepted && (
+        <p className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-success">
+          <CheckCircle2 className="h-4 w-4" /> You&apos;ve accepted. The mentorship is now active — say hello below.
+        </p>
+      )}
+      {declined && (
+        <p className="mt-4 rounded-lg bg-canvas p-3 text-sm text-body">
+          You&apos;ve declined the invitation. The coordinators have been notified.
+        </p>
+      )}
+      {error && (
+        <p className="mt-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-danger">
+          <AlertCircle className="h-4 w-4" /> {error}
+        </p>
+      )}
+
+      {/* Pending invitations to mentor */}
+      {proposals.length > 0 && (
+        <section className="mt-6">
+          <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-navy">
+            <Inbox className="h-4 w-4" /> Invitations to mentor ({proposals.length})
+          </h2>
+          <p className="mt-1 text-xs text-muted">
+            The coordinators have asked you to mentor the person below. Accept only if you can walk with them well.
+          </p>
+          <div className="mt-3 space-y-3">
+            {proposals.map((p) => (
+              <div key={p.id} className="card border-navy/20 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-ink">{p.mentee_name || "A member"}</p>
+                  <span className="chip capitalize">{p.mentee_role || "member"}</span>
+                </div>
+                {p.request_message && (
+                  <p className="mt-2 rounded-lg bg-canvas p-3 text-sm text-body">
+                    {p.request_kind === "question" ? "They have a specific question: " : "What they're hoping for: "}
+                    {p.request_message}
+                  </p>
+                )}
+                <div className="mt-3 flex items-center gap-2">
+                  <form action={respondToProposal}>
+                    <input type="hidden" name="proposal_id" value={p.id} />
+                    <input type="hidden" name="decision" value="accept" />
+                    <button className="btn btn-primary !py-1.5 !text-sm">
+                      <Check className="h-4 w-4" /> Accept
+                    </button>
+                  </form>
+                  <form action={respondToProposal}>
+                    <input type="hidden" name="proposal_id" value={p.id} />
+                    <input type="hidden" name="decision" value="decline" />
+                    <button className="btn btn-outline !py-1.5 !text-sm">
+                      <X className="h-4 w-4" /> Decline
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="mt-6 space-y-3">
         {rows.length === 0 ? (
           <div className="card p-6 text-center text-body">
-            You don&apos;t have any mentorships yet.
-            {me.role === "student" && (
-              <>
-                {" "}
-                <Link href="/directory" className="text-navy underline">
-                  Browse the directory
-                </Link>{" "}
-                to request one.
-              </>
-            )}
+            You don&apos;t have any mentorships yet.{" "}
+            <Link href="/directory" className="text-navy underline">Browse the directory</Link> to request one.
           </div>
         ) : (
           rows.map((r) => {
-            const other = people.get(r.mentor_id === me.id ? r.mentee_id : r.mentor_id);
+            const iAmMentor = r.mentor_id === me.id;
+            const other = people.get(iAmMentor ? r.mentee_id : r.mentor_id);
             return (
               <Link key={r.id} href={`/mentorships/${r.id}`} className="card flex items-center justify-between p-5 transition-shadow hover:shadow-md">
                 <div>
                   <p className="font-semibold text-ink">{other?.full_name || "Member"}</p>
                   <p className="text-sm capitalize text-body">
-                    {me.role === "alumnus" ? "Mentee" : "Mentor"} · {displayStatus(r)}
+                    {iAmMentor ? "Mentee" : "Mentor"} · {displayStatus(r)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

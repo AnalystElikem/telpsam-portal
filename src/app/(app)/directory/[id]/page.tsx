@@ -104,8 +104,8 @@ export default async function AlumnusPage({
         )}
       </div>
 
-      {/* Request — students only */}
-      {viewer.role === "student" ? (
+      {/* Request mentorship — students and alumni (not your own profile) */}
+      {(viewer.role === "student" || viewer.role === "alumnus") && viewer.id !== a.id ? (
         <div className="card mt-6 p-7">
           <h2 className="text-lg font-bold text-ink">Request mentorship</h2>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-body">
@@ -129,9 +129,11 @@ export default async function AlumnusPage({
             <button type="submit" className="btn btn-primary">Send request</button>
           </form>
         </div>
+      ) : viewer.id === a.id ? (
+        <p className="mt-6 text-center text-sm text-muted">This is your profile.</p>
       ) : (
         <p className="mt-6 text-center text-sm text-muted">
-          Only students can request mentorship.
+          Mentorship pairings are arranged by the Program Coordinators.
         </p>
       )}
     </div>

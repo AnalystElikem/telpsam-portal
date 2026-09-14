@@ -20,10 +20,10 @@ type Req = {
 export default async function AdminRequests({
   searchParams,
 }: {
-  searchParams: Promise<{ assigned?: string; error?: string }>;
+  searchParams: Promise<{ proposed?: string; error?: string }>;
 }) {
   await requireRole("admin");
-  const { assigned, error } = await searchParams;
+  const { proposed, error } = await searchParams;
   const supabase = await createClient();
 
   const { data: reqData } = await supabase
@@ -50,13 +50,15 @@ export default async function AdminRequests({
     .from("alumni_profiles")
     .select("id, profiles(full_name)")
     .eq("is_approved", true);
-  // Current active load per mentor, to enforce and show the capacity limit.
-  const { data: activeMs } = await supabase
-    .from("mentorships")
-    .select("mentor_id")
-    .eq("status", "active");
+  // Load per mentor = active mentorships + pending invitations, to show and
+  // enforce the capacity limit before we over-propose.
+  const [{ data: activeMs }, { data: pendingProps }] = await Promise.all([
+    supabase.from("mentorships").select("mentor_id").eq("status", "active"),
+    supabase.from("mentorship_proposals").select("mentor_id").eq("status", "pending"),
+  ]);
   const load = new Map<string, number>();
   for (const m of activeMs ?? []) load.set(m.mentor_id, (load.get(m.mentor_id) ?? 0) + 1);
+  for (const p of pendingProps ?? []) load.set(p.mentor_id, (load.get(p.mentor_id) ?? 0) + 1);
 
   const mentors = ((mentorsData as unknown as { id: string; profiles: { full_name: string } | null }[]) ?? []).map(
     (m) => {
@@ -71,11 +73,11 @@ export default async function AdminRequests({
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="text-2xl font-bold text-ink">Mentorship requests</h1>
-      <p className="mt-1 text-body">Match each student to an approved mentor. Pairings are created only here.</p>
+      <p className="mt-1 text-body">Propose a mentor for each member. The mentor is asked to accept before the pairing is created.</p>
 
-      {assigned && (
+      {proposed && (
         <p className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-success">
-          <CheckCircle2 className="h-4 w-4" /> Mentorship created. Both parties can now message in the portal.
+          <CheckCircle2 className="h-4 w-4" /> Invitation sent to the mentor. The pairing is created once they accept; the request now shows as &ldquo;proposed.&rdquo;
         </p>
       )}
       {error && (
@@ -93,7 +95,7 @@ export default async function AdminRequests({
             return (
               <div key={r.id} className="card p-5">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold text-ink">{student?.full_name || "Student"}</p>
+                  <p className="font-semibold text-ink">{student?.full_name || "Member"}</p>
                   <span className="chip capitalize">{r.kind}</span>
                 </div>
                 <p className="text-xs text-muted">{student?.email}</p>
@@ -108,7 +110,7 @@ export default async function AdminRequests({
                   <input type="hidden" name="mentee_id" value={r.student_id} />
                   <input type="hidden" name="request_id" value={r.id} />
                   <div className="flex-1 min-w-[180px]">
-                    <label className="mb-1 block text-xs font-medium text-muted">Assign mentor</label>
+                    <label className="mb-1 block text-xs font-medium text-muted">Propose a mentor</label>
                     <select name="mentor_id" defaultValue={r.alumnus_id || ""} required className="field">
                       <option value="" disabled>Choose an approved alumnus…</option>
                       {mentors.map((m) => (
@@ -118,7 +120,7 @@ export default async function AdminRequests({
                       ))}
                     </select>
                   </div>
-                  <button className="btn btn-primary">Create pairing</button>
+                  <button className="btn btn-primary">Propose mentor</button>
                 </form>
 
                 <form action={updateRequestStatus} className="mt-2">
@@ -140,7 +142,7 @@ export default async function AdminRequests({
               const student = people.get(r.student_id);
               return (
                 <div key={r.id} className="flex items-center justify-between rounded-lg border border-line bg-white px-4 py-2 text-sm">
-                  <span className="text-ink">{student?.full_name || "Student"}</span>
+                  <span className="text-ink">{student?.full_name || "Member"}</span>
                   <span className="chip capitalize">{r.status}</span>
                 </div>
               );

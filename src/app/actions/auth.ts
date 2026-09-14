@@ -59,6 +59,46 @@ export async function signOut() {
   redirect("/login");
 }
 
+// Sends a password-reset email. The link lands on /auth/confirm, which verifies
+// the token and drops the user on /account/update-password to set a new one.
+export async function requestPasswordReset(formData: FormData) {
+  const email = String(formData.get("email") || "").trim();
+  if (email) {
+    const supabase = await createClient();
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${appUrl}/account/update-password`,
+    });
+  }
+  // Always report success — never reveal whether an address is registered.
+  redirect("/forgot-password?sent=1");
+}
+
+// Sets a new password. Works both for a recovery session (from the reset email)
+// and for a signed-in user who just wants to change their password.
+export async function updatePassword(formData: FormData) {
+  const password = String(formData.get("password") || "");
+  const confirm = String(formData.get("confirm") || "");
+  if (password.length < 8) {
+    redirect(`/account/update-password?error=${encodeURIComponent("Password must be at least 8 characters.")}`);
+  }
+  if (password !== confirm) {
+    redirect(`/account/update-password?error=${encodeURIComponent("The two passwords don't match.")}`);
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login?error=" + encodeURIComponent("Your reset link has expired. Please request a new one."));
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    redirect(`/account/update-password?error=${encodeURIComponent(error.message)}`);
+  }
+  redirect("/dashboard?password=updated");
+}
+
 export async function agreeToRules() {
   const supabase = await createClient();
   const {

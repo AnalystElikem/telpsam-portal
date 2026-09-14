@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assessMessage } from "@/lib/safeguard";
 import { classifyMessage } from "@/lib/moderation";
-import { notifyAdmins } from "@/lib/email";
+import { notifyAdmins, notifyAdminsUrgent } from "@/lib/email";
 import { MESSAGES_PER_MINUTE } from "@/lib/constants";
 
 export async function sendMessage(formData: FormData) {
@@ -40,6 +40,23 @@ export async function sendMessage(formData: FormData) {
     .gte("created_at", oneMinAgo);
   if ((lastMinute ?? 0) >= MESSAGES_PER_MINUTE) {
     redirect(`/mentorships/${mentorship_id}?slow=1`);
+  }
+
+  // De-dupe: ignore an identical message from this sender within the last few
+  // seconds (double taps, or a laggy connection re-submitting the same form).
+  const dupSince = new Date(Date.now() - 12_000).toISOString();
+  const { data: dup } = await supabase
+    .from("messages")
+    .select("id")
+    .eq("mentorship_id", mentorship_id)
+    .eq("sender_id", user.id)
+    .eq("body", body)
+    .gte("created_at", dupSince)
+    .limit(1)
+    .maybeSingle();
+  if (dup) {
+    revalidatePath(`/mentorships/${mentorship_id}`);
+    return;
   }
 
   // FAST PATH: insert the message and refresh, then return immediately. Nothing
@@ -95,9 +112,10 @@ export async function sendMessage(formData: FormData) {
 
       // Email only for HIGH flags, once per open conversation.
       if (assessment.severity === "high" && (openHigh ?? 0) === 0) {
-        await notifyAdmins(
-          "TELPSAM alert: a conversation was auto-flagged",
-          `The portal flagged a message for possible: ${assessment.categories.join(", ")}. Please review it on the alerts page.`
+        await notifyAdminsUrgent(
+          "Safeguarding: a conversation was auto-flagged",
+          `A message was automatically flagged for possible ${assessment.categories.join(", ")}. Please review the flagged excerpt on the alerts page as soon as you can.`,
+          { text: "Review the flag", path: "/admin/alerts" }
         );
       }
     } catch {
@@ -124,9 +142,10 @@ export async function reportConcern(formData: FormData) {
     details,
   });
 
-  await notifyAdmins(
-    "TELPSAM alert: a concern was reported",
-    `A member reported a concern (${reason}). Please review it on the alerts page.`
+  await notifyAdminsUrgent(
+    "A concern was reported",
+    `A member has reported a concern (${reason}). Please review it on the alerts page as soon as you can.`,
+    { text: "Review the concern", path: "/admin/alerts" }
   );
 
   redirect(
@@ -150,8 +169,9 @@ export async function endMentorship(formData: FormData) {
   await supabase.rpc("end_mentorship", { m_id: mentorship_id });
 
   await notifyAdmins(
-    "TELPSAM alert: a mentorship has ended",
-    "A mentorship was ended by one of its participants. You can review recently ended mentorships on the alerts page."
+    "A mentorship has ended",
+    "A mentorship was ended by one of its participants. You can review recently ended mentorships on the alerts page.",
+    { text: "Open alerts", path: "/admin/alerts" }
   );
 
   revalidatePath(`/mentorships/${mentorship_id}`);
@@ -183,9 +203,10 @@ export async function submitCheckin(formData: FormData) {
       mentorship_id,
       reason: "Check-in: a participant flagged a concern",
     });
-    await notifyAdmins(
-      "TELPSAM alert: a check-in concern",
-      "A member flagged a concern in a mentorship check-in. Please review it on the alerts page."
+    await notifyAdminsUrgent(
+      "A check-in flagged a concern",
+      "A member flagged a concern in a mentorship check-in. Please review it on the alerts page as soon as you can.",
+      { text: "Review the concern", path: "/admin/alerts" }
     );
   }
 
@@ -217,8 +238,9 @@ export async function requestExtension(formData: FormData) {
       .from("extension_requests")
       .insert({ mentorship_id, requester_id: user.id });
     await notifyAdmins(
-      "TELPSAM alert: a mentorship extension request",
-      "A member asked to extend their mentorship beyond its 3-month period. Please review it on the alerts page."
+      "A mentorship extension was requested",
+      "A member asked to extend their mentorship beyond its 3-month period. Please review it on the alerts page.",
+      { text: "Open alerts", path: "/admin/alerts" }
     );
   }
 
@@ -242,8 +264,9 @@ export async function requestCall(formData: FormData) {
     .insert({ mentorship_id, requester_id: user.id });
 
   await notifyAdmins(
-    "TELPSAM alert: a phone-call request",
-    "A member requested a phone call. Please review it on the alerts page and facilitate it if appropriate."
+    "A phone call was requested",
+    "A member requested a phone call. Please review it on the alerts page and facilitate it if appropriate.",
+    { text: "Open alerts", path: "/admin/alerts" }
   );
 
   redirect(`/mentorships/${mentorship_id}?call=1`);

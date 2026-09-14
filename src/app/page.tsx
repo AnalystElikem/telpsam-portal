@@ -7,6 +7,9 @@ import {
   GraduationCap,
   UserCheck,
   Lock,
+  Globe,
+  HeartHandshake,
+  MapPin,
 } from "lucide-react";
 import { getProfile } from "@/lib/auth";
 
@@ -162,6 +165,49 @@ export default async function Home() {
               <p className="mt-2 text-sm leading-relaxed text-body">{s.text}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* What it is — and isn't */}
+      <section className="bg-canvas">
+        <div className="mx-auto max-w-6xl px-5 py-20">
+          <div className="max-w-2xl">
+            <p className="eyebrow">A bridge, not a replacement</p>
+            <h2 className="mt-3 text-h2">What this portal is for</h2>
+            <p className="mt-3 leading-relaxed text-body">
+              This portal is not here to replace physical mentorship or the relationships you already
+              have. It exists to open a door to people you would not normally reach, and to make that
+              access safe. Face-to-face mentorship, wherever it is possible, remains the goal.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {[
+              {
+                icon: Globe,
+                title: "It bridges the distance",
+                text: "It connects you with alumni and mentors you would struggle to reach in person, across cities, industries, and generations, shortening a distance that would otherwise keep you apart.",
+                color: "text-teal",
+              },
+              {
+                icon: HeartHandshake,
+                title: "It complements, never replaces",
+                text: "Your branch, chapter, and campus relationships remain primary. This does not replace the mentorship happening around you; it simply adds a connection you would not otherwise have.",
+                color: "text-gold-600",
+              },
+              {
+                icon: MapPin,
+                title: "In person, whenever possible",
+                text: "When the Coordinators know someone suitable is physically near you, they may propose an in-person mentorship instead, because presence, where it is available, is always best.",
+                color: "text-coral",
+              },
+            ].map((c) => (
+              <div key={c.title} className="card p-6">
+                <c.icon className={`h-8 w-8 ${c.color}`} />
+                <h3 className="mt-4 text-lg font-bold text-ink">{c.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-body">{c.text}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

@@ -70,12 +70,14 @@ export default async function PartnerProfilePage({ params }: { params: Promise<{
     </div>
   );
 
-  if (partnerIsMentor) {
-    const { data: a } = await supabase
-      .from("alumnus_cards")
-      .select("title, gender, grad_year, qualifications, job_title, organization, industry, interests, bio, church_branch")
-      .eq("id", partnerId)
-      .maybeSingle();
+  // Show the alumni card if the partner is an alumnus — whether they are the
+  // mentor, or an alumnus being mentored. Otherwise show the student card.
+  const { data: a } = await supabase
+    .from("alumnus_cards")
+    .select("title, gender, grad_year, qualifications, job_title, organization, industry, interests, bio, church_branch")
+    .eq("id", partnerId)
+    .maybeSingle();
+  if (a) {
     return (
       <div className="mx-auto max-w-3xl">
         {back}

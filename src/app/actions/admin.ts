@@ -172,6 +172,9 @@ export async function markCallHandled(formData: FormData) {
   revalidatePath("/admin/alerts");
 }
 
+// The coordinator PROPOSES a mentor for a request. The mentorship is not created
+// yet — the mentor is asked to accept first (see accept_proposal / decline_proposal
+// and respondToProposal). This gives the mentor a say before being assigned.
 export async function assignMentorship(formData: FormData) {
   const { supabase, adminId } = await assertAdmin();
   const mentor_id = String(formData.get("mentor_id") || "");
@@ -179,56 +182,51 @@ export async function assignMentorship(formData: FormData) {
   const request_id = String(formData.get("request_id") || "") || null;
 
   if (!mentor_id || !mentee_id) redirect("/admin/requests?error=1");
+  if (mentor_id === mentee_id) {
+    redirect(`/admin/requests?error=${encodeURIComponent("A person can't be paired with themselves.")}`);
+  }
 
-  // Capacity: a mentor may hold at most MAX_MENTEES active mentorships.
-  const { count } = await supabase
-    .from("mentorships")
+  // Capacity counts active mentorships AND already-pending invitations.
+  const [{ count: activeCount }, { count: pendingCount }] = await Promise.all([
+    supabase.from("mentorships").select("*", { count: "exact", head: true }).eq("mentor_id", mentor_id).eq("status", "active"),
+    supabase.from("mentorship_proposals").select("*", { count: "exact", head: true }).eq("mentor_id", mentor_id).eq("status", "pending"),
+  ]);
+  if (((activeCount ?? 0) + (pendingCount ?? 0)) >= MAX_MENTEES) {
+    redirect(`/admin/requests?error=${encodeURIComponent(`That mentor is at capacity (${MAX_MENTEES}), counting pending invitations.`)}`);
+  }
+
+  // Don't propose the same pair twice while one is still pending.
+  const { count: dup } = await supabase
+    .from("mentorship_proposals")
     .select("*", { count: "exact", head: true })
     .eq("mentor_id", mentor_id)
-    .eq("status", "active");
-  if ((count ?? 0) >= MAX_MENTEES) {
-    redirect(`/admin/requests?error=${encodeURIComponent(`That mentor already has ${MAX_MENTEES} active mentees.`)}`);
+    .eq("mentee_id", mentee_id)
+    .eq("status", "pending");
+  if ((dup ?? 0) > 0) {
+    redirect(`/admin/requests?error=${encodeURIComponent("That mentor already has a pending invitation for this person.")}`);
   }
 
-  // Mentorships are time-bound: they run for 3 months, then end automatically.
-  const expires = new Date();
-  expires.setMonth(expires.getMonth() + 3);
-
-  const { data: created } = await supabase
-    .from("mentorships")
-    .insert({ mentor_id, mentee_id, request_id, created_by: adminId, expires_at: expires.toISOString() })
-    .select("id")
-    .single();
+  await supabase.from("mentorship_proposals").insert({ request_id, mentee_id, mentor_id, created_by: adminId });
 
   if (request_id) {
-    await supabase.from("mentorship_requests").update({ status: "assigned" }).eq("id", request_id);
+    await supabase.from("mentorship_requests").update({ status: "proposed" }).eq("id", request_id);
   }
 
-  await logAudit(supabase, adminId, "assign_mentorship", {
-    targetType: "mentorship",
-    targetId: created?.id ?? null,
+  await logAudit(supabase, adminId, "propose_mentor", {
+    targetType: "proposal",
     detail: `mentor ${mentor_id} ↔ mentee ${mentee_id}`,
   });
 
-  // Tell both people they've been matched (no private content).
-  const matchCta = { text: "Open the conversation", path: "/mentorships" };
-  await Promise.all([
-    notifyUserById(
-      mentee_id,
-      "You've been matched with a TELPSAM mentor",
-      "Wonderful news. The coordinators have matched you with a mentor who is ready to walk with you. Take the first step and say hello. A short, friendly introduction is a lovely way to begin.",
-      matchCta
-    ),
-    notifyUserById(
-      mentor_id,
-      "You've been matched with a TELPSAM mentee",
-      "The coordinators have matched you with a mentee, and they will be looking forward to hearing from you. A warm hello goes a long way in these early days. Thank you for giving your time to mentor.",
-      matchCta
-    ),
-  ]);
+  // Ask the mentor for consent (no private content).
+  await notifyUserById(
+    mentor_id,
+    "You've been asked to mentor someone in TELPSAM",
+    "The coordinators would like to pair you with a new mentee. Please open the portal to see who it is, then accept or decline. There's no pressure — only accept if you have the capacity to walk with them well.",
+    { text: "Review the invitation", path: "/mentorships" }
+  );
 
   revalidatePath("/admin/requests");
-  redirect("/admin/requests?assigned=1");
+  redirect("/admin/requests?proposed=1");
 }
 
 export async function updateRequestStatus(formData: FormData) {

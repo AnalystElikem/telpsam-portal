@@ -35,8 +35,9 @@ export async function sendSupportMessage(formData: FormData) {
 
   if ((recent ?? 0) === 0) {
     await notifyAdmins(
-      "TELPSAM alert: a member messaged the coordinators",
-      "A member sent a message to the coordinators. Please reply from the Support inbox."
+      "A member messaged the coordinators",
+      "A member has written to the coordinators and is waiting for a reply. Please open the Support inbox to read and respond to their message.",
+      { text: "Open the Support inbox", path: "/admin/support" }
     );
   }
 

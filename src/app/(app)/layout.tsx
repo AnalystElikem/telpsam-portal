@@ -59,6 +59,7 @@ export default async function AppLayout({
             <Link href="/rules" className="font-semibold text-navy hover:underline">
               Rules of Engagement
             </Link>
+            <Link href="/account/update-password" className="text-muted hover:text-navy">Password</Link>
             <Link href="/privacy" className="text-muted hover:text-navy">Privacy</Link>
             <Link href="/terms" className="text-muted hover:text-navy">Terms</Link>
           </div>

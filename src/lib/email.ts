@@ -60,10 +60,16 @@ export async function sendTemplatedEmail(
 
 const firstName = (full?: string | null) => (full || "").trim().split(/\s+/)[0] || null;
 
-// Alert every coordinator (admin). Uses the warm template with a link to the
-// coordinator area. Needs the service-role key to read admin emails past RLS;
-// skips quietly if it isn't set. `message` may be one or more paragraphs (split
-// on blank lines).
+// Read every coordinator's email (service-role, bypasses RLS).
+async function adminEmails(admin: ReturnType<typeof createAdminClient>): Promise<string[]> {
+  const { data } = await admin.from("profiles").select("email").eq("role", "admin");
+  return (data ?? []).map((r) => r.email).filter((e): e is string => !!e);
+}
+
+// ROUTINE coordinator notifications (a signup to approve, a mentorship request,
+// a declined invitation, a support message…) are NOT emailed one-by-one. They're
+// queued and rolled up into a periodic digest (see /api/cron/admin-digest), so
+// coordinators get a few tidy summaries a day instead of a flood.
 export async function notifyAdmins(
   subject: string,
   message: string,
@@ -72,8 +78,28 @@ export async function notifyAdmins(
   try {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
     const admin = createAdminClient();
-    const { data } = await admin.from("profiles").select("email").eq("role", "admin");
-    const emails = (data ?? []).map((r) => r.email).filter((e): e is string => !!e);
+    await admin.from("admin_notifications").insert({
+      subject,
+      body: message,
+      cta_text: cta?.text ?? null,
+      cta_path: cta?.path ?? null,
+    });
+  } catch {
+    /* best effort */
+  }
+}
+
+// URGENT coordinator alerts (safeguarding flags) go out immediately, warmly
+// templated. Reserve this for things that can't wait for the next digest.
+export async function notifyAdminsUrgent(
+  subject: string,
+  message: string,
+  cta?: { text: string; path: string }
+): Promise<void> {
+  try {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+    const admin = createAdminClient();
+    const emails = await adminEmails(admin);
     if (emails.length === 0) return;
     await sendTemplatedEmail(emails, subject, {
       greetingName: "Coordinator",
@@ -84,6 +110,55 @@ export async function notifyAdmins(
   } catch {
     /* best effort */
   }
+}
+
+// Send the queued routine notifications as one digest. Returns how many items
+// were rolled up (0 if nothing was waiting). Used by the digest cron.
+export async function sendAdminDigest(): Promise<number> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return 0;
+  const admin = createAdminClient();
+
+  const { data: items } = await admin
+    .from("admin_notifications")
+    .select("id, subject, body, cta_path")
+    .is("sent_at", null)
+    .order("created_at", { ascending: true })
+    .limit(500);
+  if (!items || items.length === 0) return 0;
+
+  const emails = await adminEmails(admin);
+  if (emails.length === 0) return 0;
+
+  // Group identical subjects and count them, keeping order of first appearance.
+  const groups: { subject: string; count: number }[] = [];
+  const seen = new Map<string, number>();
+  for (const it of items) {
+    const subj = it.subject as string;
+    if (seen.has(subj)) {
+      groups[seen.get(subj)!].count++;
+    } else {
+      seen.set(subj, groups.length);
+      groups.push({ subject: subj, count: 1 });
+    }
+  }
+
+  const total = items.length;
+  const paragraphs = [
+    `Here is a summary of what needs a coordinator's attention — ${total} update${total === 1 ? "" : "s"} since the last digest:`,
+    ...groups.map((g) => `• ${g.subject}${g.count > 1 ? ` (×${g.count})` : ""}`),
+    "Open the portal to review and act on these. Anything urgent (such as a safeguarding flag) is always sent to you right away, separately.",
+  ];
+
+  await sendTemplatedEmail(emails, `TELPSAM: ${total} update${total === 1 ? "" : "s"} for the coordinators`, {
+    greetingName: "Coordinator",
+    paragraphs,
+    ctaText: "Open the coordinator dashboard",
+    ctaPath: "/admin",
+  });
+
+  const ids = items.map((i) => i.id);
+  await admin.from("admin_notifications").update({ sent_at: new Date().toISOString() }).in("id", ids);
+  return total;
 }
 
 // Email a single member (by user id) with the warm template, greeting them by

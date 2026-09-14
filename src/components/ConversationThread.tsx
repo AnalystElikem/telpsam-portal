@@ -23,10 +23,11 @@ function Avatar({ person }: { person: Person | undefined }) {
   );
 }
 
-function SendButton() {
+function SendButton({ busy }: { busy: boolean }) {
   const { pending } = useFormStatus();
+  const disabled = pending || busy;
   return (
-    <button className="btn btn-primary !px-4" title="Send" disabled={pending}>
+    <button className="btn btn-primary !px-4" title="Send" disabled={disabled} aria-disabled={disabled}>
       <Send className="h-4 w-4" />
     </button>
   );
@@ -105,13 +106,37 @@ export default function ConversationThread({
     ]
   );
   const formRef = useRef<HTMLFormElement>(null);
+  // Re-entrancy guard: a ref flips synchronously, so a second submit that fires
+  // before React re-renders (double click, Enter held, a laggy connection's
+  // repeat) is dropped immediately. `sending` is the same signal for the UI.
+  const sendingRef = useRef(false);
+  const [sending, setSending] = useState(false);
 
   async function action(formData: FormData) {
     const body = String(formData.get("body") || "").trim();
-    if (!body) return;
+    if (!body || sendingRef.current) return;
+    sendingRef.current = true;
+    setSending(true);
     addOptimistic(body);
     formRef.current?.reset();
-    await sendMessage(formData);
+    try {
+      await sendMessage(formData);
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
+    }
+  }
+
+  // Enter sends; Shift+Enter makes a newline. Guarded so a held/echoed Enter
+  // can't queue a second send.
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (sendingRef.current) return;
+      if (String((e.currentTarget.value || "")).trim()) {
+        formRef.current?.requestSubmit();
+      }
+    }
   }
 
   // "Seen" indicator: my last message read if the other party's last-seen is
@@ -166,8 +191,15 @@ export default function ConversationThread({
         <>
           <form ref={formRef} action={action} className="mt-3 flex items-end gap-2">
             <input type="hidden" name="mentorship_id" value={mentorshipId} />
-            <textarea name="body" rows={2} required className="field flex-1" placeholder="Write a message…" />
-            <SendButton />
+            <textarea
+              name="body"
+              rows={2}
+              required
+              onKeyDown={onKeyDown}
+              className="field flex-1"
+              placeholder="Write a message…"
+            />
+            <SendButton busy={sending} />
           </form>
           <p className="mt-1.5 text-[11px] text-muted">
             Please keep messages at a natural pace, very rapid bursts are limited to keep the space healthy.

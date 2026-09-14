@@ -30,7 +30,15 @@ For an existing database, run the numbered files in `supabase/migrations/`
 007_guardian_consent.sql
 008_deletion_requests.sql
 009_checkins.sql
+… (run every numbered file through the latest, in order)
+022_mentor_consent_and_alumni_mentee.sql   — mentor-consent proposals + alumni-as-mentee
+023_admin_notification_digest.sql          — queue for the batched coordinator digest
 ```
+
+Migration `022` adds the mentor-consent flow (a request is *proposed* to a
+mentor, who accepts or declines before the pairing is made) and lets an alumnus
+be mentored as well as mentor. Migration `023` adds the `admin_notifications`
+queue used by the coordinator digest (see Scheduled jobs below).
 
 ## Backups
 
@@ -104,6 +112,33 @@ once in the SQL editor, replacing the secret with your real `CRON_SECRET`:
 
 To change the schedule later, `cron.unschedule('unread-reminders-am')` first,
 then re-schedule. To pause reminders entirely, unschedule both jobs.
+
+### Coordinator digest (routine notifications, every 4 hours)
+
+Coordinators are **not** emailed once per event. Routine notifications — a new
+signup to approve, a mentorship request, a declined mentor invitation, a support
+message, a call/extension request, an ended mentorship — are queued in the
+`admin_notifications` table (migration `023`) and rolled up into **one** digest
+email by `/api/cron/admin-digest`. It groups identical subjects with an `(×N)`
+count so a busy window is a single tidy email. Safeguarding auto-flags and
+reported concerns are **not** batched — those still email coordinators
+immediately (`notifyAdminsUrgent`).
+
+Same setup as the reminders: protected by `CRON_SECRET`, scheduled via Supabase
+pg_cron (needs **pg_cron** + **pg_net**). Run once in the SQL editor, replacing
+the secret. Four times a day, on the hour (UTC = Ghana local):
+
+   ```sql
+   select cron.schedule('admin-digest', '0 8,12,16,20 * * *', $$
+     select net.http_post(
+       url := 'https://mentorship.telpsam.com/api/cron/admin-digest',
+       headers := jsonb_build_object('Authorization', 'Bearer YOUR_CRON_SECRET')
+     ); $$);
+   ```
+
+For a tighter or looser cadence, unschedule and re-schedule with a different
+cron string, e.g. `0 */6 * * *` for every six hours. Anything still queued is
+picked up by the next run, so pausing the job never loses a notification.
 
 ## Safeguarding: how messages get flagged
 

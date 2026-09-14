@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
-import { requireRole } from "@/lib/auth";
+import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "My Requests" };
 
 const STATUS: Record<string, { label: string; className: string }> = {
   new: { label: "With the Coordinators", className: "bg-gold-soft text-gold-600" },
+  proposed: { label: "Finding you a mentor", className: "bg-gold-soft text-gold-600" },
   assigned: { label: "Matched", className: "bg-green-100 text-success" },
   declined: { label: "Not matched", className: "bg-red-50 text-danger" },
   closed: { label: "Closed", className: "bg-line-soft text-muted" },
@@ -18,7 +19,7 @@ export default async function RequestsPage({
 }: {
   searchParams: Promise<{ sent?: string }>;
 }) {
-  await requireRole("student");
+  await requireProfile();
   const { sent } = await searchParams;
   const supabase = await createClient();
 

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { notifyAdmins } from "@/lib/email";
 
 export async function createRequest(formData: FormData) {
   const supabase = await createClient();
@@ -29,6 +30,12 @@ export async function createRequest(formData: FormData) {
     kind,
     message,
   });
+
+  await notifyAdmins(
+    "A new mentorship request",
+    "A member has requested a mentorship. Please review it and propose a mentor on the Requests page.",
+    { text: "Open requests", path: "/admin/requests" }
+  );
 
   redirect("/requests?sent=1");
 }
