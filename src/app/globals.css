@@ -16,7 +16,7 @@
   --color-muted: #667085;
 
   --color-gold: #c79a3a;
-  --color-gold-600: #b0842a;
+  --color-gold-600: #96701f; /* darkened for AA contrast on white/soft tints */
   --color-gold-soft: #f6ead0;
 
   /* Vibrant accents to bring the portal to life */
@@ -115,6 +115,10 @@ body {
   opacity: 0.55;
   cursor: not-allowed;
 }
+.btn:focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 2px;
+}
 
 .field {
   width: 100%;
@@ -139,6 +143,21 @@ body {
   background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: 0.9rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+}
+/* Opt-in lift for clickable cards (links/buttons). */
+.card-interactive {
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+.card-interactive:hover {
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.06);
+  transform: translateY(-1px);
+  border-color: var(--color-line);
+}
+a.card:focus-visible,
+button.card:focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 2px;
 }
 
 .eyebrow {
@@ -147,6 +166,28 @@ body {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-gold-600);
+}
+
+/* Loading placeholder with a soft shimmer. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-line-soft);
+  border-radius: 0.5rem;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
 }
 
 .chip {
@@ -159,3 +200,11 @@ body {
   background: var(--color-line-soft);
   color: var(--color-navy);
 }
+/* Semantic status variants — apply on top of .chip */
+.chip-success { background: #dff3e6; color: var(--color-success); }
+.chip-teal    { background: var(--color-teal-soft); color: #0b6b62; }
+.chip-gold    { background: var(--color-gold-soft); color: var(--color-gold-600); }
+.chip-coral   { background: var(--color-coral-soft); color: #b23a26; }
+.chip-violet  { background: var(--color-violet-soft); color: #4c3fb5; }
+.chip-muted   { background: var(--color-line-soft); color: var(--color-muted); }
+.chip-danger  { background: #fbe4e0; color: var(--color-danger); }

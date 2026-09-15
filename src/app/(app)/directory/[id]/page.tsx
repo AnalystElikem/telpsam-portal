@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ArrowLeft, UserRound, Briefcase, GraduationCap, MapPin, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Briefcase, GraduationCap, MapPin, ShieldCheck } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createRequest } from "@/app/actions/requests";
+import Avatar from "@/components/Avatar";
 
 export const metadata: Metadata = { title: "Alumnus" };
 
@@ -63,15 +63,12 @@ export default async function AlumnusPage({
 
       <div className="card mt-4 p-7">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border border-line bg-canvas">
-            {a.profiles?.avatar_url ? (
-              <Image src={a.profiles.avatar_url} alt="" fill className="object-cover" sizes="96px" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-muted">
-                <UserRound className="h-10 w-10" />
-              </div>
-            )}
-          </div>
+          <Avatar
+            name={a.profiles?.full_name}
+            src={a.profiles?.avatar_url}
+            size={96}
+            className="border border-line"
+          />
           <div>
             <h1 className="text-2xl font-bold text-ink">{name}</h1>
             <p className="mt-1 text-body">

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Flag, Lock } from "lucide-react";
+import { ArrowRight, Flag, Lock, Users } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import EmptyState from "@/components/EmptyState";
 
 export const metadata: Metadata = { title: "Mentorships · Admin" };
 
@@ -43,7 +44,7 @@ export default async function AdminMentorships() {
 
       <div className="mt-6 space-y-2">
         {rows.length === 0 ? (
-          <p className="card p-5 text-sm text-body">No mentorships yet.</p>
+          <EmptyState icon={Users} title="No mentorships yet" hint="Active pairings and one-time questions will appear here once you connect members." />
         ) : (
           rows.map((r) => {
             const isFlagged = flagged.has(r.id);
@@ -56,7 +57,7 @@ export default async function AdminMentorships() {
                 </div>
                 <div className="flex items-center gap-3">
                   {r.kind === "question" && (
-                    <span className="chip bg-gold-soft text-gold-600">Question</span>
+                    <span className="chip chip-gold">Question</span>
                   )}
                   {isFlagged ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-coral/10 px-2.5 py-0.5 text-xs font-semibold text-coral">
@@ -67,7 +68,13 @@ export default async function AdminMentorships() {
                       <Lock className="h-3 w-3" /> Private
                     </span>
                   )}
-                  <span className="chip capitalize">{r.status}</span>
+                  <span
+                    className={`chip capitalize ${
+                      r.status === "active" ? "chip-success" : r.status === "ended" ? "chip-muted" : "chip-gold"
+                    }`}
+                  >
+                    {r.status}
+                  </span>
                   {isFlagged && <ArrowRight className="h-4 w-4 text-navy" />}
                 </div>
               </>

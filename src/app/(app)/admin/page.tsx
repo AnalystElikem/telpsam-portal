@@ -23,11 +23,11 @@ export default async function AdminHome() {
   const alertCount = (openReports.count ?? 0) + (openCalls.count ?? 0);
 
   const stats = [
-    { icon: Flag, label: "Alerts needing attention", value: alertCount, href: "/admin/alerts", accent: "text-danger" },
-    { icon: GraduationCap, label: "Students awaiting approval", value: pendingStudents.count ?? 0, href: "/admin/students", accent: "text-teal" },
-    { icon: UserCheck, label: "Alumni awaiting review", value: pendingAlumni.count ?? 0, href: "/admin/alumni", accent: "text-gold-600" },
-    { icon: Inbox, label: "New mentorship requests", value: newRequests.count ?? 0, href: "/admin/requests", accent: "text-navy" },
-    { icon: Users, label: "Active mentorships", value: activeMentorships.count ?? 0, href: "/admin/mentorships", accent: "text-success" },
+    { icon: Flag, label: "Alerts needing attention", value: alertCount, href: "/admin/alerts", accent: "text-coral", tint: "bg-coral-soft" },
+    { icon: GraduationCap, label: "Students awaiting approval", value: pendingStudents.count ?? 0, href: "/admin/students", accent: "text-teal", tint: "bg-teal-soft" },
+    { icon: UserCheck, label: "Alumni awaiting review", value: pendingAlumni.count ?? 0, href: "/admin/alumni", accent: "text-gold-600", tint: "bg-gold-soft" },
+    { icon: Inbox, label: "New mentorship requests", value: newRequests.count ?? 0, href: "/admin/requests", accent: "text-violet", tint: "bg-violet-soft" },
+    { icon: Users, label: "Active mentorships", value: activeMentorships.count ?? 0, href: "/admin/mentorships", accent: "text-success", tint: "bg-[#dff3e6]" },
   ];
 
   return (
@@ -39,10 +39,14 @@ export default async function AdminHome() {
 
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
-          <Link key={s.label} href={s.href} className="card p-5 transition-shadow hover:shadow-md">
-            <s.icon className={`h-6 w-6 ${s.accent}`} />
-            <p className="mt-4 text-3xl font-bold text-ink">{s.value}</p>
-            <p className="mt-1 text-sm text-body">{s.label}</p>
+          <Link key={s.label} href={s.href} className="card card-interactive flex items-center gap-4 p-5">
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${s.tint}`}>
+              <s.icon className={`h-6 w-6 ${s.accent}`} />
+            </div>
+            <div>
+              <p className="text-3xl font-bold leading-none text-ink">{s.value}</p>
+              <p className="mt-1.5 text-sm text-body">{s.label}</p>
+            </div>
           </Link>
         ))}
       </div>

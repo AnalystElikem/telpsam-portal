@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
-import { UserRound, Search, Briefcase, Building2, ArrowRight } from "lucide-react";
+import { Search, Briefcase, Building2, ArrowRight } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import Avatar from "@/components/Avatar";
+import EmptyState from "@/components/EmptyState";
 
 export const metadata: Metadata = { title: "Alumni Directory" };
 
@@ -115,9 +116,17 @@ export default async function DirectoryPage({
       )}
 
       {alumni.length === 0 ? (
-        <p className="mt-12 text-center text-body">
-          {filtered ? "No alumni match your search yet." : "No alumni profiles are published yet. Check back soon."}
-        </p>
+        <div className="mt-8">
+          <EmptyState
+            icon={Search}
+            title={filtered ? "No matches yet" : "No alumni yet"}
+            hint={
+              filtered
+                ? "Try a different name, industry, or clear your filters."
+                : "No alumni profiles are published yet. Check back soon."
+            }
+          />
+        </div>
       ) : (
         <div className="mt-8 grid gap-6 md:grid-cols-2">
           {alumni.map((a) => (
@@ -127,15 +136,12 @@ export default async function DirectoryPage({
               className="card group flex flex-col p-6 transition-shadow hover:shadow-md sm:p-7"
             >
               <div className="flex items-start gap-5">
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-line bg-canvas sm:h-24 sm:w-24">
-                  {a.profiles?.avatar_url ? (
-                    <Image src={a.profiles.avatar_url} alt="" fill className="object-cover" sizes="96px" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-muted">
-                      <UserRound className="h-10 w-10" />
-                    </div>
-                  )}
-                </div>
+                <Avatar
+                  name={a.profiles?.full_name}
+                  src={a.profiles?.avatar_url}
+                  size={88}
+                  className="border-2 border-line"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="text-xl font-bold leading-tight text-ink group-hover:text-navy">
                     {a.title ? `${a.title} ` : ""}

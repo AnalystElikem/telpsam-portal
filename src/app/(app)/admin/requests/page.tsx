@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Inbox, HelpCircle } from "lucide-react";
 import { requireRole } from "@/lib/auth";
+import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/server";
 import { assignMentorship, connectQuestion, updateRequestStatus } from "@/app/actions/admin";
 import { MAX_MENTEES } from "@/lib/constants";
@@ -94,7 +95,7 @@ export default async function AdminRequests({
       <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-muted">Mentorship requests</h2>
       <div className="mt-3 space-y-4">
         {mentorshipReqs.length === 0 ? (
-          <p className="card p-5 text-sm text-body">No new mentorship requests.</p>
+          <EmptyState icon={Inbox} title="No new mentorship requests" hint="New requests from members will appear here to propose a mentor." />
         ) : (
           mentorshipReqs.map((r) => {
             const student = people.get(r.student_id);
@@ -103,7 +104,7 @@ export default async function AdminRequests({
               <div key={r.id} className="card p-5">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-semibold text-ink">{student?.full_name || "Member"}</p>
-                  <span className="chip capitalize">{r.kind}</span>
+                  <span className={`chip capitalize ${r.kind === "question" ? "chip-gold" : "chip-violet"}`}>{r.kind}</span>
                 </div>
                 <p className="text-xs text-muted">{student?.email}</p>
                 {wanted && (
@@ -147,7 +148,7 @@ export default async function AdminRequests({
       </p>
       <div className="mt-3 space-y-4">
         {questionReqs.length === 0 ? (
-          <p className="card p-5 text-sm text-body">No new questions.</p>
+          <EmptyState icon={HelpCircle} title="No new questions" hint="One-time questions from members will appear here to connect to an alumnus." />
         ) : (
           questionReqs.map((r) => {
             const student = people.get(r.student_id);
@@ -156,7 +157,7 @@ export default async function AdminRequests({
               <div key={r.id} className="card p-5">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-semibold text-ink">{student?.full_name || "Member"}</p>
-                  <span className="chip capitalize">{r.kind}</span>
+                  <span className={`chip capitalize ${r.kind === "question" ? "chip-gold" : "chip-violet"}`}>{r.kind}</span>
                 </div>
                 <p className="text-xs text-muted">{student?.email}</p>
                 {wanted && (
@@ -203,7 +204,19 @@ export default async function AdminRequests({
               return (
                 <div key={r.id} className="flex items-center justify-between rounded-lg border border-line bg-white px-4 py-2 text-sm">
                   <span className="text-ink">{student?.full_name || "Member"}</span>
-                  <span className="chip capitalize">{r.status}</span>
+                  <span
+                    className={`chip capitalize ${
+                      r.status === "assigned"
+                        ? "chip-success"
+                        : r.status === "declined"
+                          ? "chip-danger"
+                          : r.status === "proposed"
+                            ? "chip-gold"
+                            : "chip-muted"
+                    }`}
+                  >
+                    {r.status}
+                  </span>
                 </div>
               );
             })}

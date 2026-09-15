@@ -4,6 +4,7 @@ import { MessagesSquare, Inbox, Check, X, CheckCircle2, AlertCircle } from "luci
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { respondToProposal } from "@/app/actions/proposals";
+import EmptyState from "@/components/EmptyState";
 
 export const metadata: Metadata = { title: "My Mentorship" };
 
@@ -143,10 +144,13 @@ export default async function MentorshipsPage({
 
       <div className="mt-6 space-y-3">
         {rows.length === 0 ? (
-          <div className="card p-6 text-center text-body">
-            You don&apos;t have any mentorships yet.{" "}
-            <Link href="/directory" className="text-navy underline">Browse the directory</Link> to request one.
-          </div>
+          <EmptyState
+            icon={MessagesSquare}
+            title="No conversations yet"
+            hint="When you're matched with a mentor or connected for a question, it appears here."
+          >
+            <Link href="/directory" className="btn btn-outline !py-1.5 !text-sm">Browse the directory</Link>
+          </EmptyState>
         ) : (
           rows.map((r) => {
             const iAmMentor = r.mentor_id === me.id;

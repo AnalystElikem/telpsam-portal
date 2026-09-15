@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft, UserRound, Briefcase, Building2, GraduationCap, MapPin } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import Avatar from "@/components/Avatar";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -54,15 +54,7 @@ export default async function PartnerProfilePage({ params }: { params: Promise<{
 
   const header = (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border border-line bg-canvas">
-        {card?.avatar_url ? (
-          <Image src={card.avatar_url} alt="" fill className="object-cover" sizes="96px" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted">
-            <UserRound className="h-10 w-10" />
-          </div>
-        )}
-      </div>
+      <Avatar name={card?.full_name} src={card?.avatar_url} size={96} className="border border-line" />
       <div>
         <h1 className="text-2xl font-bold text-ink">{name}</h1>
         <p className="text-sm text-muted">{partnerIsMentor ? "Your mentor" : "Your mentee"}</p>

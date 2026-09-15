@@ -2,25 +2,16 @@
 
 import { useOptimistic, useRef, useState, useEffect, useMemo } from "react";
 import { useFormStatus } from "react-dom";
-import Image from "next/image";
-import { Send, UserRound } from "lucide-react";
+import { Send } from "lucide-react";
 import { sendMessage } from "@/app/actions/messages";
 import { createClient } from "@/lib/supabase/client";
+import Avatar from "@/components/Avatar";
 
 type Person = { id: string; full_name: string; avatar_url: string | null };
 type Msg = { id: string; sender_id: string; body: string; created_at: string; pending?: boolean };
 
-function Avatar({ person }: { person: Person | undefined }) {
-  if (person?.avatar_url) {
-    return (
-      <Image src={person.avatar_url} alt="" width={28} height={28} className="h-7 w-7 shrink-0 rounded-full object-cover" />
-    );
-  }
-  return (
-    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-canvas text-muted">
-      <UserRound className="h-4 w-4" />
-    </div>
-  );
+function PersonAvatar({ person }: { person: Person | undefined }) {
+  return <Avatar name={person?.full_name} src={person?.avatar_url} size={28} />;
 }
 
 function SendButton({ busy }: { busy: boolean }) {
@@ -162,7 +153,7 @@ export default function ConversationThread({
             const fromCoordinator = !person; // sender isn't a participant
             return (
               <div key={m.id} className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
-                {!mine && <Avatar person={person} />}
+                {!mine && <PersonAvatar person={person} />}
                 <div
                   className={`max-w-[78%] rounded-2xl px-4 py-2 text-sm ${
                     mine ? "bg-navy text-white" : fromCoordinator ? "bg-gold-soft text-ink" : "bg-canvas text-ink"
@@ -174,7 +165,7 @@ export default function ConversationThread({
                     {m.pending ? "Sending…" : new Date(m.created_at).toLocaleString()}
                   </p>
                 </div>
-                {mine && <Avatar person={byId.get(meId)} />}
+                {mine && <PersonAvatar person={byId.get(meId)} />}
               </div>
             );
           })

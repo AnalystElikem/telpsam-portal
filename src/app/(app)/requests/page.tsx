@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Inbox } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import EmptyState from "@/components/EmptyState";
 
 export const metadata: Metadata = { title: "My Requests" };
 
@@ -47,10 +48,13 @@ export default async function RequestsPage({
 
       <div className="mt-6 space-y-3">
         {requests.length === 0 ? (
-          <div className="card p-6 text-center text-body">
-            You haven&apos;t sent any requests yet.{" "}
-            <Link href="/directory" className="text-navy underline">Browse the directory</Link>.
-          </div>
+          <EmptyState
+            icon={Inbox}
+            title="No requests yet"
+            hint="Ask for a mentor or a one-time question from an alumnus's profile in the directory."
+          >
+            <Link href="/directory" className="btn btn-outline !py-1.5 !text-sm">Browse the directory</Link>
+          </EmptyState>
         ) : (
           requests.map((r) => {
             const s = STATUS[r.status] ?? STATUS.new;
