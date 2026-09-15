@@ -29,10 +29,14 @@ export default async function ConversationPage({
 
   const { data: mentorship } = await supabase
     .from("mentorships")
-    .select("id, mentor_id, mentee_id, status, ended_at, ended_by, expires_at")
+    .select("id, mentor_id, mentee_id, status, kind, ended_at, ended_by, expires_at")
     .eq("id", id)
     .maybeSingle();
   if (!mentorship) notFound();
+
+  // A one-time question is a short, lighter connection: no extension, no
+  // periodic check-in, and no long-term mentorship guide.
+  const isQuestion = mentorship.kind === "question";
 
   const isParticipant =
     mentorship.mentor_id === me.id || mentorship.mentee_id === me.id;
@@ -52,7 +56,7 @@ export default async function ConversationPage({
 
   // A mentorship can be extended only ONCE. Read any existing request (either
   // participant can see it) to decide what to show.
-  const { data: extReq } = isParticipant
+  const { data: extReq } = isParticipant && !isQuestion
     ? await supabase
         .from("extension_requests")
         .select("status")
@@ -64,6 +68,7 @@ export default async function ConversationPage({
   const extensionUsed = Boolean(extReq); // one-time: any prior request blocks another
   const canRequestExtension =
     isParticipant &&
+    !isQuestion &&
     mentorship.status !== "ended" &&
     !extensionUsed &&
     (isExpired || (daysLeft !== null && daysLeft <= 14));
@@ -152,7 +157,7 @@ export default async function ConversationPage({
 
   // Periodic check-in: ask a participant how it's going if they haven't in ~14 days.
   let checkinDue = false;
-  if (isParticipant && !isEnded) {
+  if (isParticipant && !isEnded && !isQuestion) {
     const { data: lastCheckin } = await supabase
       .from("checkins")
       .select("created_at")
@@ -185,7 +190,9 @@ export default async function ConversationPage({
           <p className="text-sm capitalize text-muted">
             {isCoordinatorView
               ? `Coordinator review · ${mentorship.status}`
-              : `${mentorship.mentor_id === me.id ? "Your mentee" : "Your mentor"} · ${mentorship.status}`}
+              : isQuestion
+                ? `Quick question · ${mentorship.status}`
+                : `${mentorship.mentor_id === me.id ? "Your mentee" : "Your mentor"} · ${mentorship.status}`}
           </p>
         </div>
         {isParticipant && (
@@ -210,9 +217,13 @@ export default async function ConversationPage({
 
       {isEnded && (
         <p className="mt-3 rounded-lg border border-line bg-canvas px-3 py-2 text-xs text-body">
-          {isExpired && mentorship.status !== "ended"
-            ? "This mentorship has reached the end of its 3-month period, so the conversation is now read-only."
-            : "This mentorship has ended. The conversation is now read-only."}
+          {isQuestion
+            ? isExpired && mentorship.status !== "ended"
+              ? "This question conversation has reached the end of its 2-week window, so it's now read-only."
+              : "This question conversation has closed. It's now read-only."
+            : isExpired && mentorship.status !== "ended"
+              ? "This mentorship has reached the end of its 3-month period, so the conversation is now read-only."
+              : "This mentorship has ended. The conversation is now read-only."}
           {isCoordinatorView && mentorship.ended_by && (
             <>
               {" "}
@@ -231,9 +242,12 @@ export default async function ConversationPage({
 
       {isParticipant && !isEnded && expiresAt && (
         <p className="mt-3 rounded-lg bg-canvas px-3 py-2 text-xs text-muted">
-          This mentorship runs until {expiresAt.toLocaleDateString()}
+          {isQuestion ? "This question conversation is open until " : "This mentorship runs until "}
+          {expiresAt.toLocaleDateString()}
           {daysLeft !== null && daysLeft <= 14 ? ` (${daysLeft} day${daysLeft === 1 ? "" : "s"} left)` : ""}.
-          It ends automatically then. A one-time 2-week extension can be requested.
+          {isQuestion
+            ? " It closes automatically then."
+            : " It ends automatically then. A one-time 2-week extension can be requested."}
         </p>
       )}
 
@@ -360,7 +374,7 @@ export default async function ConversationPage({
         </div>
       ) : (
         <>
-          {isParticipant && !isEnded && <MentorshipGuide open={messages.length === 0} />}
+          {isParticipant && !isEnded && !isQuestion && <MentorshipGuide open={messages.length === 0} />}
 
           <ConversationThread
             mentorshipId={id}
@@ -418,16 +432,16 @@ export default async function ConversationPage({
             {/* End mentorship */}
             <details className="text-sm">
               <summary className="inline-flex cursor-pointer items-center gap-1.5 text-muted hover:text-danger">
-                <LogOut className="h-4 w-4" /> End this mentorship
+                <LogOut className="h-4 w-4" /> {isQuestion ? "Close this conversation" : "End this mentorship"}
               </summary>
               <form action={endMentorship} className="card mt-3 max-w-md space-y-3 p-4">
                 <input type="hidden" name="mentorship_id" value={id} />
                 <p className="text-sm text-body">
-                  You can end this mentorship at any time, for any reason. The other
-                  person will not be told. The Program Coordinators are notified so
-                  they can follow up if needed. This closes the conversation.
+                  {isQuestion
+                    ? "You can close this conversation at any time, for any reason. The other person will not be told. The Program Coordinators are notified so they can follow up if needed."
+                    : "You can end this mentorship at any time, for any reason. The other person will not be told. The Program Coordinators are notified so they can follow up if needed. This closes the conversation."}
                 </p>
-                <button className="btn btn-outline !text-danger">End mentorship</button>
+                <button className="btn btn-outline !text-danger">{isQuestion ? "Close conversation" : "End mentorship"}</button>
               </form>
             </details>
           </div>

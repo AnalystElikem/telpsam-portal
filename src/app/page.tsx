@@ -168,6 +168,49 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Community moments */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <div className="max-w-2xl">
+            <p className="eyebrow">One community</p>
+            <h2 className="mt-3 text-h2">Faces of the network</h2>
+            <p className="mt-3 leading-relaxed text-body">
+              Students and alumni, mentors and mentees — one community learning from
+              the generation that walked the path before them.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-3 md:grid-rows-2">
+            <div className="group relative overflow-hidden rounded-3xl shadow-lg md:row-span-2 md:aspect-auto aspect-[4/3]">
+              <Image
+                src="/images/telpsam-5.jpg"
+                alt="TELPSAM students together"
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                sizes="(max-width: 768px) 90vw, 33vw"
+              />
+            </div>
+            <div className="group relative col-span-2 aspect-[16/9] overflow-hidden rounded-3xl shadow-lg">
+              <Image
+                src="/images/telpsam-2.jpg"
+                alt="TELPSAM alumni and mentors"
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                sizes="(max-width: 768px) 90vw, 66vw"
+              />
+            </div>
+            <div className="group relative col-span-2 aspect-[16/9] overflow-hidden rounded-3xl shadow-lg">
+              <Image
+                src="/images/telpsam-1.jpg"
+                alt="The TELPSAM community"
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                sizes="(max-width: 768px) 90vw, 66vw"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* What it is — and isn't */}
       <section className="bg-canvas">
         <div className="mx-auto max-w-6xl px-5 py-20">

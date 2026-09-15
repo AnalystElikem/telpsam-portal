@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 
@@ -28,7 +29,16 @@ export default function HeaderBar({
   role: string;
 }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const totalBadges = Object.values(badges).reduce((a, b) => a + b, 0);
+
+  // Highlight the current section. Exact match for the roots ("/", "/admin") so
+  // they don't swallow every child route; prefix match for everything else so a
+  // detail page (e.g. /mentorships/123) still lights up its parent tab.
+  const isActive = (href: string) =>
+    href === "/" || href === "/admin"
+      ? pathname === href
+      : pathname === href || pathname.startsWith(href + "/");
 
   return (
     <header className="border-b border-line bg-white">
@@ -68,34 +78,53 @@ export default function HeaderBar({
       {/* Desktop links row */}
       <nav className="hidden border-t border-line md:block">
         <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 py-2">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-body hover:bg-canvas hover:text-navy"
-            >
-              {l.label}
-              {badges[l.href] > 0 && <Badge count={badges[l.href]} />}
-            </Link>
-          ))}
+          {links.map((l) => {
+            const active = isActive(l.href);
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                aria-current={active ? "page" : undefined}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  active ? "bg-canvas font-semibold text-navy" : "text-body hover:bg-canvas hover:text-navy"
+                }`}
+              >
+                {l.label}
+                {badges[l.href] > 0 && <Badge count={badges[l.href]} />}
+              </Link>
+            );
+          })}
         </div>
       </nav>
 
       {/* Mobile dropdown menu */}
       {open && (
         <nav className="border-t border-line md:hidden">
-          <div className="flex flex-col px-3 py-2">
-            {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                onClick={() => setOpen(false)}
-                className="inline-flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-body hover:bg-canvas hover:text-navy"
-              >
-                {l.label}
-                {badges[l.href] > 0 && <Badge count={badges[l.href]} />}
-              </Link>
-            ))}
+          {/* Who's signed in (hidden in the top bar on mobile). */}
+          <div className="flex items-center justify-between px-5 py-3">
+            <div>
+              <p className="text-sm font-semibold leading-tight text-ink">{fullName}</p>
+              <p className="text-xs capitalize text-muted">{role}</p>
+            </div>
+          </div>
+          <div className="flex max-h-[65vh] flex-col gap-0.5 overflow-y-auto border-t border-line px-3 py-2">
+            {links.map((l) => {
+              const active = isActive(l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  aria-current={active ? "page" : undefined}
+                  className={`flex items-center justify-between rounded-md px-3 py-3 text-sm font-medium transition-colors ${
+                    active ? "bg-canvas font-semibold text-navy" : "text-body hover:bg-canvas hover:text-navy"
+                  }`}
+                >
+                  <span>{l.label}</span>
+                  {badges[l.href] > 0 && <Badge count={badges[l.href]} />}
+                </Link>
+              );
+            })}
           </div>
         </nav>
       )}
