@@ -107,6 +107,10 @@ create table if not exists public.mentorships (
   ended_at    timestamptz,
   ended_by    uuid references public.profiles(id),
   expires_at  timestamptz,   -- mentorships are time-bound (3 months)
+  -- 'question' is a short, capacity-free one-off connection (see migration 024);
+  -- 'mentorship' is a full pairing that counts toward the mentor's 3-mentee cap.
+  kind        text not null default 'mentorship'
+                check (kind in ('mentorship', 'question')),
   created_at  timestamptz not null default now()
 );
 
@@ -559,6 +563,7 @@ create index if not exists mentorships_mentor_idx  on public.mentorships (mentor
 create index if not exists mentorships_mentee_idx  on public.mentorships (mentee_id);
 create index if not exists mentorships_status_idx  on public.mentorships (status);
 create index if not exists mentorships_expires_idx on public.mentorships (expires_at);
+create index if not exists mentorships_kind_idx    on public.mentorships (kind);
 create index if not exists requests_student_idx   on public.mentorship_requests (student_id);
 create index if not exists requests_status_idx     on public.mentorship_requests (status);
 create index if not exists reports_mentorship_idx  on public.reports (mentorship_id);
@@ -617,10 +622,11 @@ begin
     from public.mentorship_proposals where id = p_id and status = 'pending';
   if v_mentor is null then raise exception 'This proposal is no longer available.'; end if;
   if v_mentor <> auth.uid() then raise exception 'This proposal is not yours to accept.'; end if;
-  select count(*) into v_active from public.mentorships where mentor_id = v_mentor and status = 'active';
+  select count(*) into v_active from public.mentorships
+    where mentor_id = v_mentor and status = 'active' and kind = 'mentorship';
   if v_active >= 3 then raise exception 'You already have the maximum number of active mentees.'; end if;
-  insert into public.mentorships (mentor_id, mentee_id, request_id, created_by, expires_at)
-    values (v_mentor, v_mentee, v_req, v_mentor, now() + interval '3 months') returning id into v_mid;
+  insert into public.mentorships (mentor_id, mentee_id, request_id, created_by, expires_at, kind)
+    values (v_mentor, v_mentee, v_req, v_mentor, now() + interval '3 months', 'mentorship') returning id into v_mid;
   update public.mentorship_proposals set status = 'accepted', responded_at = now() where id = p_id;
   if v_req is not null then update public.mentorship_requests set status = 'assigned' where id = v_req; end if;
   return v_mid;

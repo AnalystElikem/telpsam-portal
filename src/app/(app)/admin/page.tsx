@@ -15,7 +15,7 @@ export default async function AdminHome() {
       supabase.from("student_profiles").select("*", { count: "exact", head: true }).eq("is_approved", false),
       supabase.from("alumni_profiles").select("*", { count: "exact", head: true }).eq("is_approved", false),
       supabase.from("mentorship_requests").select("*", { count: "exact", head: true }).eq("status", "new"),
-      supabase.from("mentorships").select("*", { count: "exact", head: true }).eq("status", "active"),
+      supabase.from("mentorships").select("*", { count: "exact", head: true }).eq("status", "active").eq("kind", "mentorship"),
       supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "open"),
       supabase.from("call_requests").select("*", { count: "exact", head: true }).eq("status", "open"),
     ]);

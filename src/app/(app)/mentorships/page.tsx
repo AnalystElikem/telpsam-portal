@@ -12,6 +12,7 @@ type M = {
   mentor_id: string;
   mentee_id: string;
   status: string;
+  kind: string;
   expires_at: string | null;
   created_at: string;
 };
@@ -41,7 +42,7 @@ export default async function MentorshipsPage({
 
   const { data } = await supabase
     .from("mentorships")
-    .select("id, mentor_id, mentee_id, status, expires_at, created_at")
+    .select("id, mentor_id, mentee_id, status, kind, expires_at, created_at")
     .or(`mentor_id.eq.${me.id},mentee_id.eq.${me.id}`)
     .order("created_at", { ascending: false });
   const rows = (data as M[]) ?? [];
@@ -155,7 +156,9 @@ export default async function MentorshipsPage({
                 <div>
                   <p className="font-semibold text-ink">{other?.full_name || "Member"}</p>
                   <p className="text-sm capitalize text-body">
-                    {iAmMentor ? "Mentee" : "Mentor"} · {displayStatus(r)}
+                    {r.kind === "question"
+                      ? `Quick question · ${displayStatus(r)}`
+                      : `${iAmMentor ? "Mentee" : "Mentor"} · ${displayStatus(r)}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

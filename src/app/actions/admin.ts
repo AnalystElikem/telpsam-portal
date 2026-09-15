@@ -186,9 +186,10 @@ export async function assignMentorship(formData: FormData) {
     redirect(`/admin/requests?error=${encodeURIComponent("A person can't be paired with themselves.")}`);
   }
 
-  // Capacity counts active mentorships AND already-pending invitations.
+  // Capacity counts active REAL mentorships AND already-pending invitations.
+  // One-time questions are capacity-free, so they're excluded here.
   const [{ count: activeCount }, { count: pendingCount }] = await Promise.all([
-    supabase.from("mentorships").select("*", { count: "exact", head: true }).eq("mentor_id", mentor_id).eq("status", "active"),
+    supabase.from("mentorships").select("*", { count: "exact", head: true }).eq("mentor_id", mentor_id).eq("status", "active").eq("kind", "mentorship"),
     supabase.from("mentorship_proposals").select("*", { count: "exact", head: true }).eq("mentor_id", mentor_id).eq("status", "pending"),
   ]);
   if (((activeCount ?? 0) + (pendingCount ?? 0)) >= MAX_MENTEES) {
@@ -227,6 +228,63 @@ export async function assignMentorship(formData: FormData) {
 
   revalidatePath("/admin/requests");
   redirect("/admin/requests?proposed=1");
+}
+
+// A one-time QUESTION is connected straight to an alumnus — no consent step, no
+// capacity cost. It opens a short conversation that auto-closes after two weeks,
+// so quick questions never occupy a mentor's 3 mentorship slots.
+export async function connectQuestion(formData: FormData) {
+  const { supabase, adminId } = await assertAdmin();
+  const mentor_id = String(formData.get("mentor_id") || "");
+  const mentee_id = String(formData.get("mentee_id") || "");
+  const request_id = String(formData.get("request_id") || "") || null;
+
+  if (!mentor_id || !mentee_id) redirect("/admin/requests?error=1");
+  if (mentor_id === mentee_id) {
+    redirect(`/admin/requests?error=${encodeURIComponent("A person can't be paired with themselves.")}`);
+  }
+
+  // Two-week window; capacity-free (kind = 'question').
+  const expires_at = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await supabase.from("mentorships").insert({
+    mentor_id,
+    mentee_id,
+    request_id,
+    kind: "question",
+    created_by: adminId,
+    expires_at,
+  });
+  if (error) {
+    redirect(`/admin/requests?error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (request_id) {
+    await supabase.from("mentorship_requests").update({ status: "assigned" }).eq("id", request_id);
+  }
+
+  await logAudit(supabase, adminId, "connect_question", {
+    targetType: "mentorship",
+    detail: `question ${mentor_id} ↔ ${mentee_id}`,
+  });
+
+  // Both sides are told the conversation is open (no consent step for questions).
+  await Promise.all([
+    notifyUserById(
+      mentee_id,
+      "Your question has been connected",
+      "Good news — a coordinator has connected your question with an alumnus who can help. Open the portal to start the conversation. This is a short, two-week connection, so do ask what you need to.",
+      { text: "Open the conversation", path: "/mentorships" }
+    ),
+    notifyUserById(
+      mentor_id,
+      "Someone has a quick question for you",
+      "A coordinator has connected you with a member who has a one-time question. This is a short, two-week conversation with no long-term commitment. Please open the portal and help if you can — even a brief, kind reply goes a long way.",
+      { text: "Open the conversation", path: "/mentorships" }
+    ),
+  ]);
+
+  revalidatePath("/admin/requests");
+  redirect("/admin/requests?connected=1");
 }
 
 export async function updateRequestStatus(formData: FormData) {

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Mentorships · Admin" };
 
-type M = { id: string; mentor_id: string; mentee_id: string; status: string; created_at: string };
+type M = { id: string; mentor_id: string; mentee_id: string; status: string; kind: string; created_at: string };
 
 export default async function AdminMentorships() {
   await requireRole("admin");
@@ -14,7 +14,7 @@ export default async function AdminMentorships() {
 
   const { data } = await supabase
     .from("mentorships")
-    .select("id, mentor_id, mentee_id, status, created_at")
+    .select("id, mentor_id, mentee_id, status, kind, created_at")
     .order("created_at", { ascending: false });
   const rows = (data as M[]) ?? [];
 
@@ -51,10 +51,13 @@ export default async function AdminMentorships() {
               <>
                 <div className="text-sm">
                   <span className="font-semibold text-ink">{names.get(r.mentee_id) || "Student"}</span>
-                  <span className="text-muted"> mentored by </span>
+                  <span className="text-muted">{r.kind === "question" ? " asking " : " mentored by "}</span>
                   <span className="font-semibold text-ink">{names.get(r.mentor_id) || "Alumnus"}</span>
                 </div>
                 <div className="flex items-center gap-3">
+                  {r.kind === "question" && (
+                    <span className="chip bg-gold-soft text-gold-600">Question</span>
+                  )}
                   {isFlagged ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-coral/10 px-2.5 py-0.5 text-xs font-semibold text-coral">
                       <Flag className="h-3 w-3" /> Flagged

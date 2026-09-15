@@ -64,12 +64,15 @@ export default async function AdminAlerts() {
   const ended = endedRows ?? [];
 
   // Dormant mentorships: active pairings with no message for a while.
+  // One-time questions are short (2 weeks) and expire on their own, so they're
+  // excluded from the dormancy nudge.
   const DORMANT_DAYS = 14;
   const cutoff = Date.now() - DORMANT_DAYS * 86_400_000;
   const { data: activeRows } = await supabase
     .from("mentorships")
     .select("id, mentor_id, mentee_id, created_at")
-    .eq("status", "active");
+    .eq("status", "active")
+    .eq("kind", "mentorship");
   const activeList = activeRows ?? [];
   const activeIds = activeList.map((m) => m.id);
   const { data: activeMsgs } = activeIds.length

@@ -54,11 +54,14 @@ export default async function RequestsPage({
         ) : (
           requests.map((r) => {
             const s = STATUS[r.status] ?? STATUS.new;
+            // A one-time question is connected, not matched to a mentor.
+            const label =
+              r.kind === "question" && r.status === "assigned" ? "Connected" : s.label;
             return (
               <div key={r.id} className="card p-5">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-semibold capitalize text-ink">{r.kind}</span>
-                  <span className={`chip ${s.className}`}>{s.label}</span>
+                  <span className={`chip ${s.className}`}>{label}</span>
                 </div>
                 <p className="mt-2 text-sm text-body">{r.message}</p>
                 <p className="mt-2 text-xs text-muted">

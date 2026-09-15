@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CheckCircle2 } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { assignMentorship, updateRequestStatus } from "@/app/actions/admin";
+import { assignMentorship, connectQuestion, updateRequestStatus } from "@/app/actions/admin";
 import { MAX_MENTEES } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Requests · Admin" };
@@ -20,10 +20,10 @@ type Req = {
 export default async function AdminRequests({
   searchParams,
 }: {
-  searchParams: Promise<{ proposed?: string; error?: string }>;
+  searchParams: Promise<{ proposed?: string; connected?: string; error?: string }>;
 }) {
   await requireRole("admin");
-  const { proposed, error } = await searchParams;
+  const { proposed, connected, error } = await searchParams;
   const supabase = await createClient();
 
   const { data: reqData } = await supabase
@@ -50,10 +50,10 @@ export default async function AdminRequests({
     .from("alumni_profiles")
     .select("id, profiles(full_name)")
     .eq("is_approved", true);
-  // Load per mentor = active mentorships + pending invitations, to show and
-  // enforce the capacity limit before we over-propose.
+  // Load per mentor = active REAL mentorships + pending invitations, to show and
+  // enforce the capacity limit before we over-propose. Questions don't count.
   const [{ data: activeMs }, { data: pendingProps }] = await Promise.all([
-    supabase.from("mentorships").select("mentor_id").eq("status", "active"),
+    supabase.from("mentorships").select("mentor_id").eq("status", "active").eq("kind", "mentorship"),
     supabase.from("mentorship_proposals").select("mentor_id").eq("status", "pending"),
   ]);
   const load = new Map<string, number>();
@@ -68,28 +68,35 @@ export default async function AdminRequests({
   );
 
   const active = requests.filter((r) => r.status === "new");
+  const mentorshipReqs = active.filter((r) => r.kind !== "question");
+  const questionReqs = active.filter((r) => r.kind === "question");
   const done = requests.filter((r) => r.status !== "new");
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold text-ink">Mentorship requests</h1>
-      <p className="mt-1 text-body">Propose a mentor for each member. The mentor is asked to accept before the pairing is created.</p>
+      <h1 className="text-2xl font-bold text-ink">Requests</h1>
+      <p className="mt-1 text-body">Mentorship requests go to a proposed mentor to accept. One-time questions are connected to an alumnus right away and never use a mentorship slot.</p>
 
       {proposed && (
         <p className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-success">
           <CheckCircle2 className="h-4 w-4" /> Invitation sent to the mentor. The pairing is created once they accept; the request now shows as &ldquo;proposed.&rdquo;
         </p>
       )}
+      {connected && (
+        <p className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-success">
+          <CheckCircle2 className="h-4 w-4" /> Question connected. A two-week conversation is now open for both of them — it doesn&apos;t use any of the alumnus&apos;s mentorship slots.
+        </p>
+      )}
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-danger">{error}</p>
       )}
 
-      <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-muted">New</h2>
+      <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-muted">Mentorship requests</h2>
       <div className="mt-3 space-y-4">
-        {active.length === 0 ? (
-          <p className="card p-5 text-sm text-body">No new requests.</p>
+        {mentorshipReqs.length === 0 ? (
+          <p className="card p-5 text-sm text-body">No new mentorship requests.</p>
         ) : (
-          active.map((r) => {
+          mentorshipReqs.map((r) => {
             const student = people.get(r.student_id);
             const wanted = r.alumnus_id ? people.get(r.alumnus_id) : null;
             return (
@@ -127,6 +134,59 @@ export default async function AdminRequests({
                   <input type="hidden" name="id" value={r.id} />
                   <input type="hidden" name="status" value="declined" />
                   <button className="text-xs text-muted underline hover:text-danger">Decline this request</button>
+                </form>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <h2 className="mt-10 text-sm font-bold uppercase tracking-wide text-muted">One-time questions</h2>
+      <p className="mt-1 text-xs text-muted">
+        Connect a question straight to an alumnus. This opens a short, two-week conversation right away — no mentor consent step, and it doesn&apos;t use any of their mentorship slots.
+      </p>
+      <div className="mt-3 space-y-4">
+        {questionReqs.length === 0 ? (
+          <p className="card p-5 text-sm text-body">No new questions.</p>
+        ) : (
+          questionReqs.map((r) => {
+            const student = people.get(r.student_id);
+            const wanted = r.alumnus_id ? people.get(r.alumnus_id) : null;
+            return (
+              <div key={r.id} className="card p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-ink">{student?.full_name || "Member"}</p>
+                  <span className="chip capitalize">{r.kind}</span>
+                </div>
+                <p className="text-xs text-muted">{student?.email}</p>
+                {wanted && (
+                  <p className="mt-1 text-sm text-body">
+                    Would like to ask: <span className="font-medium text-ink">{wanted.full_name}</span>
+                  </p>
+                )}
+                <p className="mt-2 rounded-lg bg-canvas p-3 text-sm text-body">{r.message}</p>
+
+                <form action={connectQuestion} className="mt-4 flex flex-wrap items-end gap-3">
+                  <input type="hidden" name="mentee_id" value={r.student_id} />
+                  <input type="hidden" name="request_id" value={r.id} />
+                  <div className="flex-1 min-w-[180px]">
+                    <label className="mb-1 block text-xs font-medium text-muted">Connect to an alumnus</label>
+                    <select name="mentor_id" defaultValue={r.alumnus_id || ""} required className="field">
+                      <option value="" disabled>Choose an approved alumnus…</option>
+                      {mentors.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button className="btn btn-primary">Connect now</button>
+                </form>
+
+                <form action={updateRequestStatus} className="mt-2">
+                  <input type="hidden" name="id" value={r.id} />
+                  <input type="hidden" name="status" value="declined" />
+                  <button className="text-xs text-muted underline hover:text-danger">Decline this question</button>
                 </form>
               </div>
             );

@@ -33,12 +33,17 @@ For an existing database, run the numbered files in `supabase/migrations/`
 … (run every numbered file through the latest, in order)
 022_mentor_consent_and_alumni_mentee.sql   — mentor-consent proposals + alumni-as-mentee
 023_admin_notification_digest.sql          — queue for the batched coordinator digest
+024_one_time_questions.sql                 — questions are capacity-free, 2-week connections
 ```
 
 Migration `022` adds the mentor-consent flow (a request is *proposed* to a
 mentor, who accepts or declines before the pairing is made) and lets an alumnus
 be mentored as well as mentor. Migration `023` adds the `admin_notifications`
-queue used by the coordinator digest (see Scheduled jobs below).
+queue used by the coordinator digest (see Scheduled jobs below). Migration `024`
+adds a `kind` to mentorships so a one-time **question** is a short (2-week),
+capacity-free connection — coordinators connect it to an alumnus immediately (no
+consent step) and it never counts toward that alumnus's 3-mentee limit, so quick
+questions can't block real mentorships.
 
 ## Backups
 

@@ -31,11 +31,19 @@ export async function createRequest(formData: FormData) {
     message,
   });
 
-  await notifyAdmins(
-    "A new mentorship request",
-    "A member has requested a mentorship. Please review it and propose a mentor on the Requests page.",
-    { text: "Open requests", path: "/admin/requests" }
-  );
+  if (kind === "question") {
+    await notifyAdmins(
+      "A new one-time question",
+      "A member has asked a one-time question. Please connect them to a suitable alumnus on the Requests page — it opens a short, capacity-free conversation.",
+      { text: "Open requests", path: "/admin/requests" }
+    );
+  } else {
+    await notifyAdmins(
+      "A new mentorship request",
+      "A member has requested a mentorship. Please review it and propose a mentor on the Requests page.",
+      { text: "Open requests", path: "/admin/requests" }
+    );
+  }
 
   redirect("/requests?sent=1");
 }
