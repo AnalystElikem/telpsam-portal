@@ -32,7 +32,7 @@ export default async function LoginPage({
           <span className="font-serif text-lg font-bold text-white">TELPSAM</span>
         </Link>
         <div className="relative">
-          <h2 className="max-w-sm font-serif text-3xl font-bold leading-tight text-white">
+          <h2 className="font-serif text-2xl font-bold leading-tight text-white whitespace-nowrap">
             Welcome back to the network.
           </h2>
           <p className="mt-4 max-w-sm text-white/80">

@@ -109,9 +109,9 @@ export default async function Home() {
             <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-honey backdrop-blur">
               <Sprout className="h-3.5 w-3.5" /> The TELPSAM Alumni Mentorship Network
             </p>
-            <h1 className="mt-6 font-serif text-4xl font-black leading-[1.08] text-white drop-shadow-sm sm:text-5xl md:text-[3.5rem]">
-              <span className="block">Learn from someone who&apos;s</span>
-              <span className="block"><span className="brush-underline text-honey">gone ahead</span> of you.</span>
+            <h1 className="mt-6 text-balance font-serif text-4xl font-black leading-[1.1] text-white drop-shadow-sm sm:text-5xl md:text-[3.5rem]">
+              <span className="lg:block">Learn from someone who&apos;s</span>{" "}
+              <span className="lg:block"><span className="brush-underline text-honey">gone ahead</span> of you.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/85 text-justify">
               A warm, guided space where TELPSAM students and alumni meet. Every
