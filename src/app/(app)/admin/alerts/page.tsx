@@ -132,7 +132,8 @@ export default async function AdminAlerts() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold text-ink">Alerts</h1>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">Coordinator</p>
+      <h1 className="mt-1.5 text-2xl font-bold text-navy sm:text-3xl">Alerts</h1>
       <p className="mt-1 text-body">
         Everything that needs a coordinator&apos;s eye: flagged conversations, phone-call
         requests, dormant pairings, and mentorships that have ended.

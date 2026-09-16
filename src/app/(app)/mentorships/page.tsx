@@ -5,6 +5,8 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { respondToProposal } from "@/app/actions/proposals";
 import EmptyState from "@/components/EmptyState";
+import PageHeader from "@/components/PageHeader";
+import { titleCaseName } from "@/lib/format";
 
 export const metadata: Metadata = { title: "My Mentorship" };
 
@@ -79,8 +81,11 @@ export default async function MentorshipsPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold text-ink">My mentorship</h1>
-      <p className="mt-1 text-body">Your mentorship conversations. Everything stays inside the portal.</p>
+      <PageHeader
+        eyebrow="Your conversations"
+        title="My mentorship"
+        subtitle="Your mentorship conversations. Everything stays inside the portal."
+      />
 
       {accepted && (
         <p className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-success">
@@ -111,7 +116,7 @@ export default async function MentorshipsPage({
             {proposals.map((p) => (
               <div key={p.id} className="card border-navy/20 p-5">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold text-ink">{p.mentee_name || "A member"}</p>
+                  <p className="font-semibold text-ink">{titleCaseName(p.mentee_name) || "A member"}</p>
                   <span className="chip capitalize">{p.mentee_role || "member"}</span>
                 </div>
                 {p.request_message && (
@@ -158,7 +163,7 @@ export default async function MentorshipsPage({
             return (
               <Link key={r.id} href={`/mentorships/${r.id}`} className="card flex items-center justify-between p-5 transition-shadow hover:shadow-md">
                 <div>
-                  <p className="font-semibold text-ink">{other?.full_name || "Member"}</p>
+                  <p className="font-semibold text-ink">{titleCaseName(other?.full_name) || "Member"}</p>
                   <p className="text-sm capitalize text-body">
                     {r.kind === "question"
                       ? `Quick question · ${displayStatus(r)}`

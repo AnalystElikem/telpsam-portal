@@ -5,6 +5,7 @@ import { ArrowLeft, UserRound, Briefcase, Building2, GraduationCap, MapPin } fro
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import Avatar from "@/components/Avatar";
+import { titleCaseName } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -44,7 +45,7 @@ export default async function PartnerProfilePage({ params }: { params: Promise<{
     .select("full_name, avatar_url")
     .eq("id", partnerId)
     .maybeSingle();
-  const name = card?.full_name || (partnerIsMentor ? "Mentor" : "Mentee");
+  const name = titleCaseName(card?.full_name) || (partnerIsMentor ? "Mentor" : "Mentee");
 
   const back = (
     <Link href={`/mentorships/${id}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-body hover:text-navy">
@@ -56,7 +57,7 @@ export default async function PartnerProfilePage({ params }: { params: Promise<{
     <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
       <Avatar name={card?.full_name} src={card?.avatar_url} size={96} className="border border-line" />
       <div>
-        <h1 className="text-2xl font-bold text-ink">{name}</h1>
+        <h1 className="text-2xl font-bold text-navy sm:text-3xl">{name}</h1>
         <p className="text-sm text-muted">{partnerIsMentor ? "Your mentor" : "Your mentee"}</p>
       </div>
     </div>

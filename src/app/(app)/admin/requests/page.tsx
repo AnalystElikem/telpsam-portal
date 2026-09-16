@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CheckCircle2, Inbox, HelpCircle } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import EmptyState from "@/components/EmptyState";
+import { titleCaseName } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { assignMentorship, connectQuestion, updateRequestStatus } from "@/app/actions/admin";
 import { MAX_MENTEES } from "@/lib/constants";
@@ -75,8 +76,9 @@ export default async function AdminRequests({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold text-ink">Requests</h1>
-      <p className="mt-1 text-body">Mentorship requests go to a proposed mentor to accept. One-time questions are connected to an alumnus right away and never use a mentorship slot.</p>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">Coordinator</p>
+      <h1 className="mt-1.5 text-2xl font-bold text-navy sm:text-3xl">Requests</h1>
+      <p className="mt-2 text-body">Mentorship requests go to a proposed mentor to accept. One-time questions are connected to an alumnus right away and never use a mentorship slot.</p>
 
       {proposed && (
         <p className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-success">
@@ -103,7 +105,7 @@ export default async function AdminRequests({
             return (
               <div key={r.id} className="card p-5">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold text-ink">{student?.full_name || "Member"}</p>
+                  <p className="font-semibold text-ink">{titleCaseName(student?.full_name) || "Member"}</p>
                   <span className={`chip capitalize ${r.kind === "question" ? "chip-gold" : "chip-violet"}`}>{r.kind}</span>
                 </div>
                 <p className="text-xs text-muted">{student?.email}</p>
@@ -156,7 +158,7 @@ export default async function AdminRequests({
             return (
               <div key={r.id} className="card p-5">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold text-ink">{student?.full_name || "Member"}</p>
+                  <p className="font-semibold text-ink">{titleCaseName(student?.full_name) || "Member"}</p>
                   <span className={`chip capitalize ${r.kind === "question" ? "chip-gold" : "chip-violet"}`}>{r.kind}</span>
                 </div>
                 <p className="text-xs text-muted">{student?.email}</p>
@@ -203,7 +205,7 @@ export default async function AdminRequests({
               const student = people.get(r.student_id);
               return (
                 <div key={r.id} className="flex items-center justify-between rounded-lg border border-line bg-white px-4 py-2 text-sm">
-                  <span className="text-ink">{student?.full_name || "Member"}</span>
+                  <span className="text-ink">{titleCaseName(student?.full_name) || "Member"}</span>
                   <span
                     className={`chip capitalize ${
                       r.status === "assigned"

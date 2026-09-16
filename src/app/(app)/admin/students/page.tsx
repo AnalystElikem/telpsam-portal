@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { UserRound, CheckCircle2, Clock, Phone, GraduationCap, MapPin, Users, Search } from "lucide-react";
+import { CheckCircle2, Clock, Phone, GraduationCap, MapPin, Users, Search } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { approveStudent } from "@/app/actions/admin";
+import Avatar from "@/components/Avatar";
+import { titleCaseName } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Students · Admin" };
 
@@ -18,7 +20,7 @@ type Row = {
   class_level: string | null;
   is_approved: boolean;
   guardian_consent_confirmed: boolean;
-  profiles: { full_name: string; email: string } | null;
+  profiles: { full_name: string; email: string; avatar_url: string | null } | null;
 };
 
 export default async function AdminStudents({
@@ -41,9 +43,9 @@ export default async function AdminStudents({
 
   const ids = base.map((r) => r.id);
   const { data: people } = ids.length
-    ? await supabase.from("profiles").select("id, full_name, email").in("id", ids)
+    ? await supabase.from("profiles").select("id, full_name, email, avatar_url").in("id", ids)
     : { data: [] };
-  const pById = new Map((people ?? []).map((p) => [p.id, p as { full_name: string; email: string }]));
+  const pById = new Map((people ?? []).map((p) => [p.id, p as { full_name: string; email: string; avatar_url: string | null }]));
   let rows: Row[] = base.map((r) => ({ ...r, profiles: pById.get(r.id) ?? null }));
 
   const needle = (q || "").trim().toLowerCase();
@@ -68,7 +70,8 @@ export default async function AdminStudents({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-ink">Students</h1>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">Coordinator</p>
+      <h1 className="mt-1.5 text-2xl font-bold text-navy sm:text-3xl">Students</h1>
       <p className="mt-1 text-body">
         Review each student before approving them into the network. Phone and parent
         details are private, for coordinator use only.
@@ -150,12 +153,10 @@ function StudentCard({ r }: { r: Row }) {
     <div className="card p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-line bg-canvas text-muted">
-            <UserRound className="h-6 w-6" />
-          </div>
+          <Avatar name={r.profiles?.full_name} src={r.profiles?.avatar_url} size={56} className="ring-2 ring-line" />
           <div className="space-y-1 text-sm">
             <p className="font-semibold text-ink">
-              {r.profiles?.full_name || "Student"}
+              {titleCaseName(r.profiles?.full_name) || "Student"}
               {r.gender ? <span className="ml-2 text-xs font-normal text-muted">{r.gender}</span> : null}
             </p>
             <p className="text-xs text-muted">{r.profiles?.email}</p>
@@ -187,7 +188,7 @@ function StudentCard({ r }: { r: Row }) {
         <div className="flex flex-col items-stretch gap-2 sm:items-end">
           {r.is_approved ? (
             <>
-              <span className="chip bg-green-100 text-success">
+              <span className="chip chip-success">
                 <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Approved
               </span>
               {r.guardian_consent_confirmed && (
@@ -201,7 +202,7 @@ function StudentCard({ r }: { r: Row }) {
             </>
           ) : (
             <>
-              <span className="chip bg-gold-soft text-gold-600">
+              <span className="chip chip-gold">
                 <Clock className="mr-1 h-3.5 w-3.5" /> Pending
               </span>
               <form action={approveStudent} className="flex flex-col items-stretch gap-2 sm:items-end">

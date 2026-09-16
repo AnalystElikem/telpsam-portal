@@ -10,132 +10,139 @@ import {
   Globe,
   HeartHandshake,
   MapPin,
+  ArrowRight,
+  Quote,
+  Sprout,
 } from "lucide-react";
 import { getProfile } from "@/lib/auth";
 
-const HERO_IMG = "/images/telpsam-4.jpg";
-const BAND_IMG = "/images/telpsam-3.jpg";
-const COMMUNITY_IMG = "/images/telpsam-1.jpg";
+const HERO_IMG = "/images/telpsam-event-3.jpg";
+const TESTIMONIAL_IMG = "/images/telpsam-event-1.jpg";
+const SAFE_IMG = "/images/telpsam-event-2.jpg";
+
+const ribbon = [
+  { src: "/images/telpsam-event-2.jpg", alt: "TELPSAM members in conversation" },
+  { src: "/images/telpsam-event-1.jpg", alt: "A speaker at the TELPSAM conference" },
+  { src: "/images/telpsam-community.png", alt: "The TELPSAM community" },
+  { src: "/images/telpsam-event-3.jpg", alt: "An evening gathering under the lights" },
+  { src: "/images/telpsam-1.jpg", alt: "TELPSAM community" },
+  { src: "/images/telpsam-4.jpg", alt: "A mentor sharing with students" },
+];
+
+const heroPills = [
+  { icon: HeartHandshake, label: "Personally introduced" },
+  { icon: Lock, label: "Private & in-portal" },
+  { icon: Sprout, label: "Built for growth" },
+];
 
 const steps = [
   {
     icon: UserCheck,
-    title: "Alumni Enlist",
-    text: "Graduates create a profile with their journey, qualifications, work, and interests, reviewed and approved by the TELPSAM Program Coordinators.",
-    bg: "bg-navy",
+    title: "Alumni step forward",
+    text: "Graduates share their story, work, and what they can help with. Every profile is reviewed and welcomed in by the Program Coordinators.",
+    tint: "bg-forest-soft text-forest",
   },
   {
     icon: Users,
-    title: "Students Explore",
-    text: "Current students browse the alumni network for inspiration and see how those ahead of them have walked their paths.",
-    bg: "bg-teal",
+    title: "You find your people",
+    text: "Browse alumni who have walked the path ahead of you — across cities, industries, and generations — and see who you'd love to learn from.",
+    tint: "bg-clay-soft text-clay-600",
   },
   {
-    icon: ShieldCheck,
-    title: "The Coordinators Match",
-    text: "Mentorship pairings are assigned and overseen by the TELPSAM Program Coordinators, never arranged privately, to keep everyone safe.",
-    bg: "bg-gold",
+    icon: HeartHandshake,
+    title: "We introduce you",
+    text: "Pairings are made and cared for by the Program Coordinators, never arranged privately — so both sides feel safe from the very first hello.",
+    tint: "bg-honey-soft text-honey-700",
   },
   {
     icon: MessagesSquare,
-    title: "Guided Conversations",
-    text: "Mentor and mentee talk inside the portal, where the Coordinators can support and safeguard every interaction.",
-    bg: "bg-coral",
+    title: "You talk, gently guided",
+    text: "Mentor and mentee talk inside the portal, at a natural pace, with the Coordinators quietly looking out for everyone.",
+    tint: "bg-forest-soft text-forest",
   },
 ];
 
 const safeguards = [
-  "All conversations happen inside the portal. No phone numbers or personal contacts are exchanged.",
+  "Every conversation stays inside the portal. No phone numbers or private contacts change hands.",
   "No requests for money, gifts, or favours. Ever.",
   "No private meet-ups arranged through the platform.",
-  "Pairings are assigned by the TELPSAM Program Coordinators, never arranged privately.",
-  "Conversations are private, but anything that breaks the rules is flagged automatically, and anyone can report a concern.",
+  "Pairings are made by the Program Coordinators, never arranged privately.",
+  "Chats are private — but anything that breaks the rules is flagged, and anyone can raise a concern.",
 ];
 
 export default async function Home() {
   const profile = await getProfile();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-cream text-body">
       {/* Header */}
-      <header className="border-b border-line bg-white">
+      <header className="sticky top-0 z-30 border-b border-line bg-cream/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            <Image src="/telpsam-logo.png" alt="TELPSAM" width={40} height={40} className="h-10 w-10 object-contain" />
-            <span className="font-serif text-lg font-bold text-ink">
-              TELPSAM <span className="text-gold-600">Portal</span>
-            </span>
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image src="/telpsam-logo.png" alt="TELPSAM" width={38} height={38} className="h-9 w-9 object-contain" />
+            <span className="font-serif text-lg font-bold text-forest">TELPSAM</span>
           </Link>
           <nav className="flex items-center gap-2 sm:gap-3">
-            <Link href="/rules" className="hidden text-sm font-medium text-body hover:text-navy sm:block">
+            <Link href="/rules" className="hidden text-sm font-medium text-body hover:text-forest sm:block">
               Rules of Engagement
             </Link>
             {profile ? (
-              <Link href="/dashboard" className="btn btn-primary">Go to my portal</Link>
+              <Link href="/dashboard" className="btn btn-forest">Go to my portal</Link>
             ) : (
               <>
-                <Link href="/login" className="btn btn-outline">Sign in</Link>
-                <Link href="/join" className="btn btn-primary">Join</Link>
+                <Link href="/login" className="btn btn-forest-outline">Sign in</Link>
+                <Link href="/join" className="btn btn-forest">Join</Link>
               </>
             )}
           </nav>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-navy text-white">
-        <div className="absolute inset-0" aria-hidden>
-          <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-teal/30 blur-3xl" />
-          <div className="absolute right-0 top-40 h-80 w-80 rounded-full bg-gold/25 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-coral/20 blur-3xl" />
-        </div>
-        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 py-16 lg:grid-cols-2 lg:py-24">
-          <div>
-            <p className="eyebrow text-gold">The TELPSAM Alumni Network</p>
-            <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-white md:text-5xl">
-              Learn from those who have{" "}
-              <span className="text-gold">gone ahead</span> of you.
+      {/* Hero — full-bleed, atmospheric */}
+      <section className="relative isolate flex min-h-[88vh] items-center overflow-hidden">
+        <Image src={HERO_IMG} alt="A TELPSAM evening gathering under the lights" fill priority className="-z-10 object-cover object-center" sizes="100vw" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#0d1526]/94 via-[#0d1526]/72 to-[#0d1526]/25" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#0d1526]/85 via-transparent to-transparent" />
+
+        <div className="mx-auto w-full max-w-6xl px-5 py-20">
+          <div className="max-w-4xl">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-honey backdrop-blur">
+              <Sprout className="h-3.5 w-3.5" /> The TELPSAM Alumni Mentorship Network
+            </p>
+            <h1 className="mt-6 font-serif text-4xl font-black leading-[1.08] text-white drop-shadow-sm sm:text-5xl md:text-[3.5rem]">
+              <span className="block">Learn from someone who&apos;s</span>
+              <span className="block"><span className="brush-underline text-honey">gone ahead</span> of you.</span>
             </h1>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/85">
-              A guided mentorship space connecting TELPSAM students with alumni.
-              It is centrally coordinated, protected, and overseen by the TELPSAM
-              Program Coordinators, so wisdom is shared safely and interactions
-              stay accountable.
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/85 text-justify">
+              A warm, guided space where TELPSAM students and alumni meet. Every
+              connection is introduced and cared for by the Program Coordinators —
+              so wisdom is shared safely, and no one walks their path alone.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/join?role=student" className="btn btn-gold">
+              <Link href="/join?role=student" className="btn bg-honey !px-6 !py-3.5 text-forest shadow-lg shadow-black/20 hover:bg-honey/90">
                 <GraduationCap className="h-4 w-4" /> I&apos;m a student
               </Link>
-              <Link href="/join?role=alumnus" className="btn bg-white text-navy hover:bg-white/90">
+              <Link href="/join?role=alumnus" className="btn !px-6 !py-3.5 text-white ring-1 ring-white/40 backdrop-blur hover:bg-white/10">
                 <UserCheck className="h-4 w-4" /> I&apos;m an alumnus
               </Link>
             </div>
-            <p className="mt-6 flex items-center gap-2 text-sm text-white/70">
-              <Lock className="h-4 w-4" /> Every connection is coordinated and
-              safeguarded by the Program Coordinators.
-            </p>
-          </div>
-
-          <div className="relative mx-auto w-full max-w-md">
-            <div className="absolute -right-4 -top-4 h-full w-full rounded-3xl bg-gold/30" aria-hidden />
-            <div className="absolute -bottom-4 -left-4 h-full w-full rounded-3xl bg-teal/30" aria-hidden />
-            <div className="relative aspect-[4/5] overflow-hidden rounded-3xl border-4 border-white/10 shadow-2xl">
-              <Image src={HERO_IMG} alt="A TELPSAM speaker sharing with students" fill className="object-cover" sizes="(max-width: 1024px) 90vw, 420px" priority />
+            <div className="mt-9 flex flex-wrap gap-2.5">
+              {heroPills.map((p) => (
+                <span key={p.label} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white/90 backdrop-blur">
+                  <p.icon className="h-4 w-4 text-honey" /> {p.label}
+                </span>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Trust strip */}
-      <section className="border-b border-line bg-white">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-5 py-6 sm:grid-cols-3">
-          {[
-            { icon: ShieldCheck, label: "Centrally Coordinated", color: "text-teal" },
-            { icon: Lock, label: "Private & In-Portal", color: "text-gold-600" },
-            { icon: Users, label: "A Network Designed for Impact", color: "text-coral" },
-          ].map((t) => (
-            <div key={t.label} className="flex items-center justify-center gap-2 text-center text-sm font-semibold text-ink">
-              <t.icon className={`h-5 w-5 shrink-0 ${t.color}`} /> {t.label}
+      {/* Moving photo ribbon */}
+      <section className="overflow-hidden border-y border-line bg-forest py-6">
+        <div className="marquee-track gap-4">
+          {[...ribbon, ...ribbon].map((img, i) => (
+            <div key={i} className="relative h-40 w-60 shrink-0 overflow-hidden rounded-2xl sm:h-48 sm:w-72">
+              <Image src={img.src} alt={img.alt} fill className="object-cover" sizes="288px" />
             </div>
           ))}
         </div>
@@ -144,83 +151,40 @@ export default async function Home() {
       {/* How it works */}
       <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="max-w-2xl">
-          <p className="eyebrow">How it works</p>
-          <h2 className="mt-3 text-h2">Mentorship Done Responsibly</h2>
-          <p className="mt-3 leading-relaxed text-body">
-            Students do not cold-contact alumni. Every mentorship is arranged and
-            watched over by the TELPSAM Program Coordinators, so the relationship
-            is safe for both sides. Each pairing runs for 3 months, enough to open a
-            door to an alumnus you would not usually reach, without replacing the
-            mentorship that continues in your branch and chapter.
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-clay">How it works</p>
+          <h2 className="mt-3 font-serif text-3xl font-bold text-forest md:text-4xl">Mentorship, done with care</h2>
+          <p className="mt-4 leading-relaxed text-body">
+            You never cold-contact anyone. Every mentorship is introduced and watched
+            over by the Program Coordinators, and each pairing runs for three months —
+            long enough to open a door to someone you&apos;d never usually reach, without
+            replacing the relationships already around you.
           </p>
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((s, i) => (
-            <div key={s.title} className="card p-6">
-              <div className={`flex h-12 w-12 items-center justify-center rounded-xl text-white ${s.bg}`}>
+            <div key={s.title} className="rounded-3xl border border-line bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${s.tint}`}>
                 <s.icon className="h-6 w-6" />
               </div>
-              <p className="mt-4 text-xs font-bold text-gold-600">STEP {i + 1}</p>
-              <h3 className="mt-1 text-lg font-bold text-ink">{s.title}</h3>
+              <p className="mt-4 text-xs font-bold text-clay">STEP {i + 1}</p>
+              <h3 className="mt-1 font-serif text-lg font-bold text-ink">{s.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-body">{s.text}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Community moments */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-6xl px-5 py-16">
-          <div className="max-w-2xl">
-            <p className="eyebrow">One community</p>
-            <h2 className="mt-3 text-h2">Faces of the network</h2>
-            <p className="mt-3 leading-relaxed text-body">
-              Students and alumni, mentors and mentees — one community learning from
-              the generation that walked the path before them.
-            </p>
-          </div>
-          <div className="mt-10 grid gap-4 md:grid-cols-3 md:grid-rows-2">
-            <div className="group relative overflow-hidden rounded-3xl shadow-lg md:row-span-2 md:aspect-auto aspect-[4/3]">
-              <Image
-                src="/images/telpsam-5.jpg"
-                alt="TELPSAM students together"
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-                sizes="(max-width: 768px) 90vw, 33vw"
-              />
-            </div>
-            <div className="group relative col-span-2 aspect-[16/9] overflow-hidden rounded-3xl shadow-lg">
-              <Image
-                src="/images/telpsam-2.jpg"
-                alt="TELPSAM alumni and mentors"
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-                sizes="(max-width: 768px) 90vw, 66vw"
-              />
-            </div>
-            <div className="group relative col-span-2 aspect-[16/9] overflow-hidden rounded-3xl shadow-lg">
-              <Image
-                src="/images/telpsam-1.jpg"
-                alt="The TELPSAM community"
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-                sizes="(max-width: 768px) 90vw, 66vw"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* What it is — and isn't */}
-      <section className="bg-canvas">
+      {/* A bridge, not a replacement */}
+      <section className="bg-sand/60">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <div className="max-w-2xl">
-            <p className="eyebrow">A bridge, not a replacement</p>
-            <h2 className="mt-3 text-h2">What this portal is for</h2>
-            <p className="mt-3 leading-relaxed text-body">
-              This portal is not here to replace physical mentorship or the relationships you already
-              have. It exists to open a door to people you would not normally reach, and to make that
-              access safe. Face-to-face mentorship, wherever it is possible, remains the goal.
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-clay">A bridge, not a replacement</p>
+            <h2 className="mt-3 font-serif text-3xl font-bold text-forest md:text-4xl">What this space is for</h2>
+            <p className="mt-4 leading-relaxed text-body">
+              This portal isn&apos;t here to replace the mentorship and relationships you
+              already have. It exists to open a door to people you&apos;d struggle to reach
+              on your own — and to make that access safe. Face-to-face mentorship,
+              wherever it&apos;s possible, is still the goal.
             </p>
           </div>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -228,25 +192,27 @@ export default async function Home() {
               {
                 icon: Globe,
                 title: "It bridges the distance",
-                text: "It connects you with alumni and mentors you would struggle to reach in person, across cities, industries, and generations, shortening a distance that would otherwise keep you apart.",
-                color: "text-teal",
+                text: "It connects you with alumni you'd struggle to reach in person — across cities, industries, and generations — shortening a distance that would otherwise keep you apart.",
+                tint: "bg-forest-soft text-forest",
               },
               {
                 icon: HeartHandshake,
                 title: "It complements, never replaces",
-                text: "Your branch, chapter, and campus relationships remain primary. This does not replace the mentorship happening around you; it simply adds a connection you would not otherwise have.",
-                color: "text-gold-600",
+                text: "Your branch, chapter, and campus relationships stay primary. This doesn't replace the mentorship happening around you; it simply adds one you wouldn't otherwise have.",
+                tint: "bg-clay-soft text-clay-600",
               },
               {
                 icon: MapPin,
-                title: "In person, whenever possible",
-                text: "When the Coordinators know someone suitable is physically near you, they may propose an in-person mentorship instead, because presence, where it is available, is always best.",
-                color: "text-coral",
+                title: "In person, whenever we can",
+                text: "When the Coordinators know someone suitable is physically near you, they may propose an in-person mentorship instead — because presence, where it's possible, is always best.",
+                tint: "bg-honey-soft text-honey-700",
               },
             ].map((c) => (
-              <div key={c.title} className="card p-6">
-                <c.icon className={`h-8 w-8 ${c.color}`} />
-                <h3 className="mt-4 text-lg font-bold text-ink">{c.title}</h3>
+              <div key={c.title} className="rounded-3xl border border-line bg-white p-6 shadow-sm">
+                <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${c.tint}`}>
+                  <c.icon className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 font-serif text-lg font-bold text-ink">{c.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-body">{c.text}</p>
               </div>
             ))}
@@ -254,61 +220,87 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Image band */}
-      <section className="relative overflow-hidden">
-        <div className="relative min-h-[360px]">
-          <Image src={BAND_IMG} alt="TELPSAM Program Coordinators at a conference" fill className="object-cover object-[center_28%]" sizes="100vw" />
-          <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/85 to-navy/40" />
-          <div className="absolute inset-0 flex items-center">
-            <div className="mx-auto w-full max-w-6xl px-5">
-              <blockquote className="max-w-xl">
-                <p className="font-serif text-2xl font-bold leading-snug text-white md:text-3xl">
-                  &ldquo;A generation blessed by the one before it. This is how we
-                  raise leaders.&rdquo;
-                </p>
-                <p className="mt-4 text-white/75">
-                  Mentorship at TELPSAM is intentional, protected, and rooted in care.
-                </p>
-                <Link href="/rules" className="btn btn-gold mt-6">
-                  See the Rules of Engagement
-                </Link>
-              </blockquote>
+      {/* Testimonial */}
+      <section className="bg-white">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 lg:grid-cols-2 lg:gap-12">
+          <div className="relative order-2 lg:order-1">
+            <div className="absolute -left-5 -top-5 h-24 w-24 rounded-3xl bg-honey-soft" aria-hidden />
+            <div className="relative aspect-[5/4] overflow-hidden rounded-[2rem] border-4 border-white shadow-xl">
+              <Image src={TESTIMONIAL_IMG} alt="A speaker at the TELPSAM conference" fill className="object-cover" sizes="(max-width: 1024px) 90vw, 520px" />
             </div>
+          </div>
+          <div className="order-1 lg:order-2">
+            <Quote className="h-9 w-9 text-clay" />
+            <blockquote className="mt-4 font-serif text-2xl font-bold leading-snug text-forest text-balance">
+              A generation blessed by the one before it.<br className="hidden sm:block" /> This is how we raise leaders.
+            </blockquote>
+            <p className="mt-5 leading-relaxed text-body">
+              Mentorship at TELPSAM is intentional, protected, and rooted in care —
+              a quiet handing-down of wisdom from those who have walked ahead.
+            </p>
+            <Link href="/rules" className="btn btn-forest-outline mt-7">
+              See the Rules of Engagement <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </section>
 
       {/* Safeguards */}
-      <section className="bg-white">
+      <section className="bg-sand/60">
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 lg:grid-cols-2 lg:gap-16">
           <div>
-            <p className="eyebrow">Built on trust</p>
-            <h2 className="mt-3 text-h2">The rules that keep this safe</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-clay">Built on trust</p>
+            <h2 className="mt-3 font-serif text-3xl font-bold text-forest md:text-4xl">The care that keeps this safe</h2>
             <p className="mt-4 leading-relaxed text-body">
-              This portal exists to help, not to expose. Both students and alumni
-              agree to clear rules of engagement before taking part, and the
-              Program Coordinators hold everyone to them.
+              This portal exists to help, not to expose. Students and alumni agree to
+              clear rules of engagement before taking part, and the Program
+              Coordinators hold everyone to them — gently, and consistently.
             </p>
             <ul className="mt-6 space-y-3">
               {safeguards.map((s) => (
-                <li key={s} className="flex gap-3 rounded-xl bg-canvas p-4">
-                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-teal" />
-                  <span className="text-body">{s}</span>
+                <li key={s} className="flex gap-3 rounded-2xl border border-line bg-white p-4">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-forest" />
+                  <span className="text-sm text-body">{s}</span>
                 </li>
               ))}
             </ul>
-            <Link href="/rules" className="btn btn-outline mt-6">
+            <Link href="/rules" className="btn btn-forest-outline mt-7">
               Read the full Rules of Engagement
             </Link>
           </div>
-          <div className="relative aspect-[4/5] overflow-hidden rounded-3xl shadow-xl lg:aspect-auto lg:h-[560px]">
-            <Image src={COMMUNITY_IMG} alt="The TELPSAM community" fill className="object-cover" sizes="(max-width: 1024px) 90vw, 520px" />
+          <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] border-4 border-white shadow-xl lg:aspect-auto lg:h-[560px]">
+            <Image src={SAFE_IMG} alt="TELPSAM members together in the evening" fill className="object-cover" sizes="(max-width: 1024px) 90vw, 520px" />
+          </div>
+        </div>
+      </section>
+
+      {/* CTA band */}
+      <section className="bg-cream px-5 py-20">
+        <div className="grain relative mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] bg-forest px-6 py-16 text-center text-white sm:px-12">
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-honey/20 blur-2xl" aria-hidden />
+          <div className="absolute -bottom-12 -left-8 h-48 w-48 rounded-full bg-clay/20 blur-2xl" aria-hidden />
+          <div className="relative">
+            <h2 className="mx-auto max-w-2xl font-serif text-3xl font-bold leading-tight text-white md:text-4xl">
+              Ready to learn from someone who&apos;s walked your path?
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-white/80">
+              Join the TELPSAM network today. A coordinator will help you find the
+              right person to walk with.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Link href="/join?role=student" className="btn bg-honey !px-5 !py-3 text-forest hover:bg-honey/90">
+                <GraduationCap className="h-4 w-4" /> Join as a student
+              </Link>
+              <Link href="/join?role=alumnus" className="btn bg-white/10 !px-5 !py-3 text-white ring-1 ring-white/30 hover:bg-white/20">
+                <UserCheck className="h-4 w-4" /> Join as an alumnus
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-navy text-white/70">
+      <footer className="bg-forest text-white/70">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 px-5 py-10 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
             <Image src="/telpsam-logo.png" alt="TELPSAM" width={32} height={32} className="h-8 w-8 object-contain" />

@@ -52,6 +52,37 @@ export default async function AdminAnalytics() {
     .gte("created_at", d7);
   const activeConversations = new Set((recentMsgs ?? []).map((m) => m.mentorship_id)).size;
 
+  // Mentorships over time: the running total of mentorships ever created, by
+  // month, for the last 12 months — so growth is visible at a glance.
+  const { data: mRows } = await supabase
+    .from("mentorships")
+    .select("created_at")
+    .eq("kind", "mentorship");
+  const now = new Date();
+  const windowStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+    return { key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString("en", { month: "short" }), added: 0 };
+  });
+  const monthIndex = new Map(months.map((m, i) => [m.key, i]));
+  let baseline = 0; // mentorships created before the 12-month window
+  for (const r of mRows ?? []) {
+    const d = new Date(r.created_at);
+    if (d < windowStart) {
+      baseline++;
+      continue;
+    }
+    const i = monthIndex.get(`${d.getFullYear()}-${d.getMonth()}`);
+    if (i !== undefined) months[i].added++;
+  }
+  let running = baseline;
+  const series = months.map((m) => {
+    running += m.added;
+    return { label: m.label, total: running, added: m.added };
+  });
+  const maxTotal = Math.max(1, ...series.map((s) => s.total));
+  const totalMentorships = (mRows ?? []).length;
+
   const groups: { title: string; stats: { label: string; value: number; accent?: string }[] }[] = [
     {
       title: "Members",
@@ -92,7 +123,8 @@ export default async function AdminAnalytics() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <h1 className="text-2xl font-bold text-ink">Analytics</h1>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">Coordinator</p>
+      <h1 className="mt-1.5 text-2xl font-bold text-navy sm:text-3xl">Analytics</h1>
       <p className="mt-1 text-body">A snapshot of the programme&apos;s health.</p>
 
       <div className="mt-8 space-y-8">
@@ -109,6 +141,33 @@ export default async function AdminAnalytics() {
             </div>
           </section>
         ))}
+
+        <section>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">Mentorships over time</h2>
+          <div className="card mt-3 p-5">
+            <p className="text-sm text-body">
+              <span className="text-3xl font-bold text-ink">{totalMentorships}</span> mentorships created in total
+            </p>
+            <div className="mt-6">
+              <div className="flex h-32 items-end gap-1.5">
+                {series.map((s, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-t bg-navy transition-colors hover:bg-gold"
+                    style={{ height: `${Math.max(3, (s.total / maxTotal) * 100)}%` }}
+                    title={`${s.label}: ${s.total} total (+${s.added} that month)`}
+                  />
+                ))}
+              </div>
+              <div className="mt-1.5 flex gap-1.5">
+                {series.map((s, i) => (
+                  <span key={i} className="flex-1 text-center text-[10px] text-muted">{s.label}</span>
+                ))}
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-muted">Running total by month, last 12 months. Hover a bar for the count.</p>
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -28,10 +28,11 @@ export default async function SupportPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
-        <LifeBuoy className="h-6 w-6 text-teal" /> Message the coordinators
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">We&apos;re here to help</p>
+      <h1 className="mt-1.5 flex items-center gap-2 text-2xl font-bold text-navy sm:text-3xl">
+        <LifeBuoy className="h-6 w-6 shrink-0 text-teal" /> Message the coordinators
       </h1>
-      <p className="mt-1 text-body">
+      <p className="mt-2 text-body">
         Ask the Program Coordinators anything, a question about the programme, a
         concern, or help with your account. Any coordinator may reply.
       </p>

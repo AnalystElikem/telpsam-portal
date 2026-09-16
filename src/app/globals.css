@@ -32,6 +32,21 @@
   --color-line: #e6e8ec;
   --color-line-soft: #eef0f3;
 
+  /* Public-page palette, mapped to the TELPSAM navy + gold brand.
+     (Names kept — "forest" = navy anchor, "clay"/"honey" = gold accents.) */
+  --color-forest: #14213d;
+  --color-forest-700: #1d2d52;
+  --color-forest-600: #2a3b6b;
+  --color-forest-soft: #e6eaf2;
+  --color-clay: #96701f;       /* gold, dark enough for text on light */
+  --color-clay-600: #7a5c18;
+  --color-clay-soft: #f6ead0;
+  --color-honey: #c79a3a;      /* bright gold for dark surfaces + buttons */
+  --color-honey-700: #96701f;
+  --color-honey-soft: #f6ead0;
+  --color-cream: #f7f8fa;
+  --color-sand: #eef0f3;
+
   --color-success: #2f855a;
   --color-danger: #c0392b;
 
@@ -68,7 +83,8 @@ body {
   h4 {
     font-family: var(--font-serif);
     color: var(--color-ink);
-    font-weight: 600;
+    font-weight: 700; /* Merriweather ships 400/700/900 — 700 is the heading weight */
+    letter-spacing: -0.01em;
   }
 }
 
@@ -79,7 +95,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 0.6rem;
+  border-radius: 0.7rem;
   padding: 0.65rem 1.25rem;
   font-size: 0.9rem;
   font-weight: 600;
@@ -111,6 +127,30 @@ body {
   border-color: var(--color-navy);
   color: var(--color-navy);
 }
+.btn-forest {
+  background: var(--color-forest);
+  color: #fff;
+}
+.btn-forest:hover {
+  background: var(--color-forest-700);
+}
+.btn-clay {
+  background: var(--color-clay);
+  color: #fff;
+}
+.btn-clay:hover {
+  background: var(--color-clay-600);
+}
+/* Outlined button for warm/forest surfaces */
+.btn-forest-outline {
+  border: 1px solid var(--color-forest);
+  background: transparent;
+  color: var(--color-forest);
+}
+.btn-forest-outline:hover {
+  background: var(--color-forest);
+  color: #fff;
+}
 .btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -123,7 +163,7 @@ body {
 .field {
   width: 100%;
   border: 1px solid var(--color-line);
-  border-radius: 0.6rem;
+  border-radius: 0.7rem;
   padding: 0.6rem 0.85rem;
   font-size: 0.95rem;
   color: var(--color-ink);
@@ -142,7 +182,7 @@ body {
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-line);
-  border-radius: 0.9rem;
+  border-radius: 1.1rem;
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
 }
 /* Opt-in lift for clickable cards (links/buttons). */
@@ -208,3 +248,62 @@ button.card:focus-visible {
 .chip-violet  { background: var(--color-violet-soft); color: #4c3fb5; }
 .chip-muted   { background: var(--color-line-soft); color: var(--color-muted); }
 .chip-danger  { background: #fbe4e0; color: var(--color-danger); }
+
+/* ---- Signature details ---- */
+
+/* Hand-drawn gold underline for a hero keyword. The stroke is a rough SVG so it
+   reads as drawn by hand, not a rule. */
+.brush-underline {
+  position: relative;
+  white-space: nowrap;
+}
+.brush-underline::after {
+  content: "";
+  position: absolute;
+  left: -3%;
+  right: -3%;
+  bottom: -0.22em;
+  height: 0.32em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 22' preserveAspectRatio='none'%3E%3Cpath d='M5 14 C 70 5 120 18 175 10 C 220 4 260 15 295 9' fill='none' stroke='%23c79a3a' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E")
+    no-repeat center / 100% 100%;
+  pointer-events: none;
+}
+
+/* Auto-scrolling photo ribbon. The track holds two copies of the set, so a
+   -50% shift loops seamlessly. Pauses on hover and for reduced-motion users. */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 45s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+}
+
+/* Gentle float for accent cards. */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.floaty { animation: floaty 5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .floaty { animation: none; }
+}
+
+/* A whisper of film grain for depth on dark hero surfaces. */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}

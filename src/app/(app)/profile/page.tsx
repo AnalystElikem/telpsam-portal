@@ -39,7 +39,7 @@ export default async function ProfilePage({
 
     return (
       <div className="mx-auto max-w-2xl">
-        <h1 className="text-2xl font-bold text-ink">My profile</h1>
+        <h1 className="text-2xl font-bold text-navy sm:text-3xl">My profile</h1>
         <p className="mt-1 text-body">
           Keep your details up to date. Your phone and parent or guardian details
           stay private to the Program Coordinators.
@@ -92,7 +92,7 @@ export default async function ProfilePage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold text-ink">My alumni profile</h1>
+      <h1 className="text-2xl font-bold text-navy sm:text-3xl">My alumni profile</h1>
       <p className="mt-1 text-body">
         Share your journey so students can learn from you. The Program Coordinators review new
         profiles before they appear.

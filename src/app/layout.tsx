@@ -1,15 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Lora, Inter } from "next/font/google";
+import { Merriweather, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const heading = Lora({
+// Merriweather: a sturdy, readable serif for headings — classic and credible.
+const heading = Merriweather({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "700", "900"],
+  style: ["normal", "italic"],
   variable: "--font-heading",
   display: "swap",
 });
 
-const body = Inter({
+// Hanken Grotesk: a humanist grotesque for body text — clean but with more
+// warmth than the usual Inter default.
+const body = Hanken_Grotesk({
   subsets: ["latin"],
   variable: "--font-body",
   display: "swap",

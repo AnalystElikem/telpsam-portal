@@ -38,7 +38,7 @@ export default async function AdminCoordinators({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
+      <h1 className="flex items-center gap-2 text-2xl font-bold text-navy sm:text-3xl">
         <Star className="h-6 w-6 text-gold-600" /> Coordinators
       </h1>
       <p className="mt-1 text-body">

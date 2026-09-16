@@ -4,6 +4,7 @@ import { ArrowRight, Flag, Lock, Users } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import EmptyState from "@/components/EmptyState";
+import { titleCaseName } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Mentorships · Admin" };
 
@@ -36,8 +37,9 @@ export default async function AdminMentorships() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold text-ink">Mentorships</h1>
-      <p className="mt-1 text-body">
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">Coordinator</p>
+      <h1 className="mt-1.5 text-2xl font-bold text-navy sm:text-3xl">Mentorships</h1>
+      <p className="mt-2 text-body">
         Every active pairing. Conversations are private, you can only open and read
         a thread once it has been flagged or reported.
       </p>
@@ -51,9 +53,9 @@ export default async function AdminMentorships() {
             const inner = (
               <>
                 <div className="text-sm">
-                  <span className="font-semibold text-ink">{names.get(r.mentee_id) || "Student"}</span>
+                  <span className="font-semibold text-ink">{titleCaseName(names.get(r.mentee_id)) || "Student"}</span>
                   <span className="text-muted">{r.kind === "question" ? " asking " : " mentored by "}</span>
-                  <span className="font-semibold text-ink">{names.get(r.mentor_id) || "Alumnus"}</span>
+                  <span className="font-semibold text-ink">{titleCaseName(names.get(r.mentor_id)) || "Alumnus"}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   {r.kind === "question" && (

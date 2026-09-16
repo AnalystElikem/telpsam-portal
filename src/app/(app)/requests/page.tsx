@@ -33,11 +33,12 @@ export default async function RequestsPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold text-ink">My requests</h1>
-      <p className="mt-1 text-body">
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">Your asks</p>
+      <h1 className="mt-1.5 text-2xl font-bold text-navy sm:text-3xl">My requests</h1>
+      <p className="mt-2 text-body">
         Requests you&apos;ve sent to the Program Coordinators. When you&apos;re matched, your
         mentorship appears under{" "}
-        <Link href="/mentorships" className="text-gold-600 underline">My Mentorship</Link>.
+        <Link href="/mentorships" className="font-semibold text-gold-600 hover:underline">My Mentorship</Link>.
       </p>
 
       {sent && (

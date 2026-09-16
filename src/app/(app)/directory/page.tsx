@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Search, Briefcase, Building2, ArrowRight } from "lucide-react";
+import Image from "next/image";
+import { Search, Briefcase, Building2, ArrowRight, MapPin } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import Avatar from "@/components/Avatar";
 import EmptyState from "@/components/EmptyState";
+import { titleCaseName, cleanTitle } from "@/lib/format";
+
+function initials(name: string): string {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export const metadata: Metadata = { title: "Alumni Directory" };
 
@@ -72,8 +80,9 @@ export default async function DirectoryPage({
   return (
     <div>
       <div>
-        <h1 className="text-2xl font-bold text-ink">Alumni Directory</h1>
-        <p className="mt-1 text-body">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">Find your mentor</p>
+        <h1 className="mt-1.5 text-2xl font-bold text-navy sm:text-3xl">Alumni Directory</h1>
+        <p className="mt-2 text-body">
           Explore alumni who have gone ahead of you. To connect, open a profile
           and request mentorship, and the Program Coordinators will arrange the match.
         </p>
@@ -128,58 +137,70 @@ export default async function DirectoryPage({
           />
         </div>
       ) : (
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {alumni.map((a) => (
             <Link
               key={a.id}
               href={`/directory/${a.id}`}
-              className="card group flex flex-col p-6 transition-shadow hover:shadow-md sm:p-7"
+              className="card card-interactive group flex flex-col overflow-hidden"
             >
-              <div className="flex items-start gap-5">
-                <Avatar
-                  name={a.profiles?.full_name}
-                  src={a.profiles?.avatar_url}
-                  size={88}
-                  className="border-2 border-line"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xl font-bold leading-tight text-ink group-hover:text-navy">
-                    {a.title ? `${a.title} ` : ""}
-                    {a.profiles?.full_name || "Alumnus"}
-                  </p>
-                  {a.job_title && (
-                    <p className="mt-1.5 flex items-center gap-2 text-sm font-semibold text-navy">
-                      <Briefcase className="h-4 w-4 shrink-0 text-gold-600" />
-                      {a.job_title}
-                    </p>
-                  )}
-                  {a.organization && (
-                    <p className="mt-1 flex items-center gap-2 text-sm text-body">
-                      <Building2 className="h-4 w-4 shrink-0 text-muted" />
-                      {a.organization}
-                    </p>
-                  )}
-                  {(a.industry || a.grad_year) && (
-                    <p className="mt-2 text-xs text-muted">
-                      {a.industry}
-                      {a.industry && a.grad_year ? " · " : ""}
-                      {a.grad_year ? `Class of ${a.grad_year}` : ""}
-                    </p>
-                  )}
-                </div>
+              {/* Prominent photo */}
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-canvas">
+                {a.profiles?.avatar_url ? (
+                  <Image
+                    src={a.profiles.avatar_url}
+                    alt={a.profiles?.full_name || "Alumnus"}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 360px"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-navy to-navy-600 font-serif text-5xl font-bold text-white/90">
+                    {initials(a.profiles?.full_name || "Alumnus")}
+                  </div>
+                )}
+                <span className="absolute right-3 top-3 inline-flex items-center rounded-full bg-black/45 px-2.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur">
+                  Alumnus
+                </span>
               </div>
 
-              {a.interests && a.interests.length > 0 && (
-                <div className="mt-5 flex flex-wrap gap-1.5">
-                  {a.interests.slice(0, 4).map((it) => (
-                    <span key={it} className="chip">{it}</span>
-                  ))}
-                </div>
-              )}
+              <div className="flex flex-1 flex-col p-4">
+                <p className="font-serif text-base font-bold leading-tight text-ink group-hover:text-navy">
+                  {a.title ? `${cleanTitle(a.title)} ` : ""}
+                  {titleCaseName(a.profiles?.full_name) || "Alumnus"}
+                </p>
 
-              <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-gold-600">
-                View full profile <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </span>
+                {a.job_title && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-navy">
+                    <Briefcase className="h-3.5 w-3.5 shrink-0 text-gold-600" />
+                    <span className="truncate">{a.job_title}</span>
+                  </p>
+                )}
+                {a.organization && (
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-body">
+                    <Building2 className="h-3.5 w-3.5 shrink-0 text-muted" />
+                    <span className="truncate">{a.organization}</span>
+                  </p>
+                )}
+                {a.profiles?.campus && (
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-body">
+                    <MapPin className="h-3.5 w-3.5 shrink-0 text-muted" />
+                    <span className="truncate">{a.profiles.campus}</span>
+                  </p>
+                )}
+                {(a.industry || a.grad_year) && (
+                  <p className="mt-1.5 text-xs text-muted">
+                    {a.industry}
+                    {a.industry && a.grad_year ? " · " : ""}
+                    {a.grad_year ? `Class of ${a.grad_year}` : ""}
+                  </p>
+                )}
+
+                <div className="mt-3 flex-1" />
+                <span className="btn btn-primary w-full !py-2 !text-sm">
+                  View profile <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </div>
             </Link>
           ))}
         </div>

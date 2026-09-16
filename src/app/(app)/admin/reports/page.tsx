@@ -39,7 +39,8 @@ export default async function AdminReports() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold text-ink">Reports</h1>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">Coordinator</p>
+      <h1 className="mt-1.5 text-2xl font-bold text-navy sm:text-3xl">Reports</h1>
       <p className="mt-1 text-body">Concerns raised by students or alumni. Review and act promptly.</p>
 
       <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-muted">Open</h2>

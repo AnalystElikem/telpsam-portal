@@ -6,6 +6,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createRequest } from "@/app/actions/requests";
 import Avatar from "@/components/Avatar";
+import { titleCaseName, cleanTitle } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Alumnus" };
 
@@ -53,7 +54,7 @@ export default async function AlumnusPage({
     .maybeSingle();
   const a: Row = { ...base, profiles: card ?? null };
 
-  const name = `${a.title ? `${a.title} ` : ""}${a.profiles?.full_name || "Alumnus"}`;
+  const name = `${a.title ? `${cleanTitle(a.title)} ` : ""}${titleCaseName(a.profiles?.full_name) || "Alumnus"}`;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -70,7 +71,7 @@ export default async function AlumnusPage({
             className="border border-line"
           />
           <div>
-            <h1 className="text-2xl font-bold text-ink">{name}</h1>
+            <h1 className="text-2xl font-bold text-navy sm:text-3xl">{name}</h1>
             <p className="mt-1 text-body">
               {a.job_title || "—"}
               {a.organization ? ` at ${a.organization}` : ""}
